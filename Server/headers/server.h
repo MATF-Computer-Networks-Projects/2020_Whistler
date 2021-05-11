@@ -2,8 +2,10 @@
 #define SERVER_H
 
 #include <QObject>
+#include <QSqlDatabase>
 #include <QTcpServer>
 #include <QWidget>
+#include <QtSql>
 
 class Client;
 
@@ -15,6 +17,13 @@ public:
 
 private:
   QList<Client *> allClients;
+
+  QString dbHostname;
+  QString dbUsername;
+  QString dbPassword;
+  QString dbDatabaseName;
+  QString dbPort;
+  QSqlDatabase db;
 
 private slots:
   void broadcastAll(Client *client);
