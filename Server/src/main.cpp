@@ -6,15 +6,15 @@ int main(int argc, char *argv[]) {
   QCoreApplication a(argc, argv);
 
   // making server
-  Server Server;
+  Server server;
 
   // starting server (if port is 0, port number is automatically chosen)
-  if (!Server.startServer(0)) {
-    qDebug() << "Error:" << Server.errorString();
+  if (!server.startServer(0)) {
+    qDebug() << "Error:" << server.errorString();
     return 1;
   }
   // printing port number that server runs on
-  qDebug() << Server.serverPort();
+  qDebug() << server.serverPort();
   qDebug() << "Server up";
 
   return a.exec();
