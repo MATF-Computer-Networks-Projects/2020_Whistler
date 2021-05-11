@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
   Server server;
 
   // starting server (if port is 0, port number is automatically chosen)
-  if (!server.startServer(0)) {
+  if (!server.startServer(12345)) {
     qDebug() << "Error:" << server.errorString();
     return 1;
   }
