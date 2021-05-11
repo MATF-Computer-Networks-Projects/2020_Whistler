@@ -12,7 +12,7 @@ bool Server::startServer(quint16 port) {
   return listen(QHostAddress::Any, port);
 }
 
-void Server::clientConnected(qintptr socketDesc) {
+void Server::incomingConnection(qintptr socketDesc) {
   qDebug() << "Connected client with socket descriptor:" << socketDesc;
   auto socket = new Client(socketDesc, this);
   allClients << socket;

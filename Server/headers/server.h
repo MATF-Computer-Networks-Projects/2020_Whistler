@@ -11,7 +11,7 @@ class Server : public QTcpServer {
 public:
   Server(QObject *parent = nullptr);
   bool startServer(quint16 port);
-  void clientConnected(qintptr socketDesc);
+  void incomingConnection(qintptr socketDesc);
 
 private:
   QList<Client *> allClients;
