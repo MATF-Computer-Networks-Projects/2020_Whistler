@@ -12,6 +12,7 @@ class Client;
 class Server : public QTcpServer {
 public:
   Server(QObject *parent = nullptr);
+  ~Server();
   bool startServer(quint16 port);
   void incomingConnection(qintptr socketDesc);
   int port = 12345;
@@ -27,7 +28,10 @@ private:
   QSqlDatabase db;
 
   QString signupCheckString = "0xa$124432";
+  QString loginCheckString = "0xa$124jk2";
   QString separator = "$$$";
+
+  quint64 hashingValue = Q_UINT64_C(0x0c2ad4a4acb9f023);
 
 private slots:
   void serveClient(Client *client);

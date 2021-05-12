@@ -10,6 +10,7 @@
 #include "headers/simplecrypt.h"
 
 Server::Server(QObject *parent) : QTcpServer(parent) {}
+Server::~Server() { db.close(); }
 
 bool Server::startServer(quint16 port) {
 
@@ -87,7 +88,7 @@ bool Server::startServer(quint16 port) {
 void Server::incomingConnection(qintptr socketDesc) {
   qDebug() << "Connected client with socket descriptor:" << socketDesc;
   auto socket = new Client(socketDesc, this);
-  allClients << socket;
+  //  allClients << socket;
 
   for (const auto &c : allClients) {
     // let every other client know new client has connected
@@ -125,11 +126,12 @@ void Server::clientDisconnected(Client *client, int state) {
 void Server::serveClient(Client *client) {
   qDebug() << "Read from client:" << client;
   QTextStream streamFrom(client);
-  auto text = streamFrom.readAll();
+  auto message = streamFrom.readAll();
 
-  if (text.startsWith(signupCheckString)) {
+  // signup check
+  if (message.startsWith(signupCheckString)) {
     qDebug() << "Checking account on signup";
-    QList<QString> userInfo = text.split(separator);
+    QList<QString> userInfo = message.split(separator);
     QString username = userInfo[1];
     QString password = userInfo[2];
     qDebug() << "username" << username;
@@ -172,7 +174,7 @@ void Server::serveClient(Client *client) {
       // unique id (no need to check or use select last id from db or something)
       quint64 id = QDateTime::currentMSecsSinceEpoch();
       QString hashedPassword;
-      SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
+      SimpleCrypt crypto(hashingValue);
       hashedPassword = crypto.encryptToString(password);
 
       // add new user to database
@@ -204,13 +206,86 @@ void Server::serveClient(Client *client) {
     //    }
 
     client->flush();
-  }
 
-  for (const auto &c : allClients) {
-    if (c != client) {
-      QTextStream stream(c);
-      stream << text;
-      c->flush();
+    // login check
+  } else if (message.startsWith(loginCheckString)) {
+    qDebug() << "Checking account on login";
+    QList<QString> userInfo = message.split(separator);
+    QString username = userInfo[1];
+    QString password = userInfo[2];
+    qDebug() << "username" << username;
+
+    QSqlQuery query(db);
+
+    query.prepare("SELECT * FROM Accounts where username=(:username)");
+
+    query.bindValue(":username", username);
+
+    query.exec();
+    int numRows;
+
+    // First way
+    if (db.driver()->hasFeature(QSqlDriver::QuerySize)) {
+      qDebug() << "prvo";
+      numRows = query.size();
+
+    } else {
+      qDebug() << "drugo";
+      // this can be very slow
+      query.at();
+      numRows = query.at() + 1;
+    }
+
+    // if there is no rows with that username then that is wrong username
+    if (numRows == 0) {
+      streamFrom << "Unsuccessful user doesnt exist";
+      qDebug() << "Unsuccessful user doesnt exist";
+
+    } else {
+      query.next();
+      if (query.isValid()) {
+        qDebug() << query.isValid();
+        // there is instance in database with that username
+        int idDb = query.value(0).toInt();
+        QString usernameDb = query.value(1).toString();
+        QString passwordDb = query.value(2).toString();
+        qDebug() << idDb << usernameDb << passwordDb;
+
+        // checking if password is correct
+        QString unhashedPassword;
+        SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
+        unhashedPassword = crypto.decryptToString(passwordDb);
+
+        qDebug() << "unhashed password" << unhashedPassword;
+
+        if (unhashedPassword == password) {
+          streamFrom << "Successful";
+          qDebug() << "Successful";
+          // add socket of client to allClients
+          allClients << client;
+        } else {
+
+          streamFrom << "Unsuccessful wrong password";
+          qDebug() << "Unsuccessful wrong password";
+        }
+      }
+
+      client->flush();
+    }
+
+    // basic message
+  } else {
+    QList<QString> messageData = message.split(separator);
+    QString username = messageData[0];
+    QString messageText = messageData[1];
+
+    // sending message to all clients except the one who sent it
+    for (const auto &c : allClients) {
+      if (c != client) {
+        QTextStream stream(c);
+        stream << username << " sent: " << messageText;
+        c->flush();
+      }
     }
   }
 }

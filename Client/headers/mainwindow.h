@@ -17,8 +17,35 @@ public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
 
+private slots:
+  void on_signupButton_clicked();
+
+  void on_loginButton_clicked();
+
+  void on_back_clicked();
+
+  void on_signupButtonSignupPage_clicked();
+
+  void accountCheckSignup();
+  void accountCheckLogin();
+
+  void on_sendButton_clicked();
+
+  void chatHandler(QString message);
+
 private:
   Ui::MainWindow *ui;
   QTcpSocket *mSocket;
+  QString username;
+  QString password;
+  QString hostname;
+  QString port;
+
+  QString signupCheckString = "0xa$124432";
+  QString loginCheckString = "0xa$124jk2";
+  QString separator = "$$$";
+  int serverPort = 12345;
+
+  void clearInputFields();
 };
 #endif // MAINWINDOW_H
