@@ -53,7 +53,7 @@ bool Server::startServer(quint16 port) {
     //    SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
     //    hashedPassword = crypto.encryptToString(password);
 
-    //    query->prepare("INSERT INTO Accounts "
+    //    query.prepare("INSERT INTO Accounts "
     //                    "VALUES (:id,:username,:password)");
     //    query.bindValue(":id", id);
     //    query.bindValue(":username", username);
@@ -99,7 +99,7 @@ void Server::incomingConnection(qintptr socketDesc) {
   }
   // when any client writes message, server sends that message to everyone else
   // (with broadcastAll)
-  connect(socket, &Client::readSignal, this, &Server::broadcastAll);
+  connect(socket, &Client::readSignal, this, &Server::serveClient);
   connect(socket, &Client::stateChangedSignal, this,
           &Server::clientDisconnected);
 }
@@ -122,10 +122,89 @@ void Server::clientDisconnected(Client *client, int state) {
   }
 }
 
-void Server::broadcastAll(Client *client) {
+void Server::serveClient(Client *client) {
   qDebug() << "Read from client:" << client;
   QTextStream streamFrom(client);
   auto text = streamFrom.readAll();
+
+  if (text.startsWith(signupCheckString)) {
+    qDebug() << "Checking account on signup";
+    QList<QString> userInfo = text.split(separator);
+    QString username = userInfo[1];
+    QString password = userInfo[2];
+    qDebug() << "username" << username;
+
+    QSqlQuery query(db);
+
+    query.prepare("SELECT * FROM Accounts where username=(:username)");
+
+    query.bindValue(":username", username);
+
+    query.exec();
+    int numRows;
+
+    // First way
+    if (db.driver()->hasFeature(QSqlDriver::QuerySize)) {
+      qDebug() << "prvo";
+      numRows = query.size();
+      //      if (query.isActive()) {
+      //        qDebug() << "active";
+      //      } else {
+      //        qDebug() << "not active";
+      //      }
+      //      while (query.next()) {
+      //        int id = query.value(0).toInt();
+      //        QString username = query.value(1).toString();
+      //        QString password = query.value(2).toString();
+      //        qDebug() << id << username << password;
+      //      }
+    } else {
+      qDebug() << "drugo";
+      // this can be very slow
+      query.at();
+      numRows = query.at() + 1;
+    }
+
+    // if there is no rows with that username we add user to database
+    if (numRows == 0) {
+      streamFrom << "Successful";
+
+      // unique id (no need to check or use select last id from db or something)
+      quint64 id = QDateTime::currentMSecsSinceEpoch();
+      QString hashedPassword;
+      SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
+      hashedPassword = crypto.encryptToString(password);
+
+      // add new user to database
+      query.prepare("INSERT INTO Accounts "
+                    "VALUES (:id,:username,:password)");
+      query.bindValue(":id", id);
+      query.bindValue(":username", username);
+      query.bindValue(":password", hashedPassword);
+      query.exec();
+
+    } else {
+      streamFrom << "Unsuccessful";
+    }
+
+    // // Second way
+    //    query.next();
+    //    if (query.isValid()) {
+    //      qDebug() << query.isValid();
+    //      // there is instance in database with that username
+    //      int id = query.value(0).toInt();
+    //      QString username = query.value(1).toString();
+    //      QString password = query.value(2).toString();
+    //      qDebug() << id << username << password;
+    //      streamFrom << "Unsuccessful";
+    //      qDebug() << "Unsuccessful";
+    //    } else {
+    //      streamFrom << "Successful";
+    //      qDebug() << "Successful";
+    //    }
+
+    client->flush();
+  }
 
   for (const auto &c : allClients) {
     if (c != client) {

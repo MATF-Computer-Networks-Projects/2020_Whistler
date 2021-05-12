@@ -14,6 +14,7 @@ public:
   Server(QObject *parent = nullptr);
   bool startServer(quint16 port);
   void incomingConnection(qintptr socketDesc);
+  int port = 12345;
 
 private:
   QList<Client *> allClients;
@@ -25,8 +26,11 @@ private:
   QString dbPort;
   QSqlDatabase db;
 
+  QString signupCheckString = "0xa$124432";
+  QString separator = "$$$";
+
 private slots:
-  void broadcastAll(Client *client);
+  void serveClient(Client *client);
   void clientDisconnected(Client *stream, int state);
 };
 
