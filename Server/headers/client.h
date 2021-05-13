@@ -6,11 +6,18 @@
 class Client : public QTcpSocket {
   Q_OBJECT
 public:
-  Client(qintptr socketDesc, QObject *parent = nullptr);
+  Client(qintptr socketDesc, QString username, bool showOnlineStatus,
+         QObject *parent = nullptr);
   int socketDesc();
+  QString getUsername();
+  void setUsername(QString username);
+  void setShowOnlineStatus(bool showOnlineStatus);
+  bool getShowOnlineStatus();
 
 private:
   int mSocketDesc;
+  QString mUsername;
+  bool mShowOnlineStatus;
 
 public slots:
   void emitReadSignal();

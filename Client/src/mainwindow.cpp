@@ -1,6 +1,7 @@
 #include "headers/mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QRegexpValidator>
+#include <QTime>
 #include <iostream>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -9,6 +10,11 @@ MainWindow::MainWindow(QWidget *parent)
 
   ui->stackedWidget->setCurrentWidget(ui->loginPage);
 
+  ui->hostname->setText("localhost");
+  ui->port->setText("12345");
+  ui->username->setText("user");
+  ui->password->setText("123");
+
   // only numbers can be entered in port field
   ui->port->setValidator(new QRegExpValidator(QRegExp("[0-9]*"), this));
 
@@ -16,16 +22,18 @@ MainWindow::MainWindow(QWidget *parent)
       new QRegExpValidator(QRegExp("[a-zA-Z0-9]{3,20}"), this));
 
   ui->passwordSignupPage->setValidator(
-      new QRegExpValidator(QRegExp(".{3,20}"), this));
+      new QRegExpValidator(QRegExp("[^$]{3,20}"), this));
 
   ui->username->setValidator(
       new QRegExpValidator(QRegExp("[a-zA-Z0-9]{3,20}"), this));
 
-  ui->password->setValidator(new QRegExpValidator(QRegExp(".{3,20}"), this));
+  ui->password->setValidator(new QRegExpValidator(QRegExp("[^$]{3,20}"), this));
 
-  ui->oldPassword->setValidator(new QRegExpValidator(QRegExp(".{3,20}"), this));
+  ui->oldPassword->setValidator(
+      new QRegExpValidator(QRegExp("[^$]{3,20}"), this));
 
-  ui->newPassword->setValidator(new QRegExpValidator(QRegExp(".{3,20}"), this));
+  ui->newPassword->setValidator(
+      new QRegExpValidator(QRegExp("[^$]{3,20}"), this));
 
   // setting tab order so we can use tab
   this->setTabOrder(ui->hostname, ui->port);
@@ -91,7 +99,10 @@ void MainWindow::on_loginButton_clicked() {
 
   connect(mSocket, &QTcpSocket::readyRead, this,
           &MainWindow::accountCheckLogin);
+  connect(mSocket, &QTcpSocket::connected, this, &MainWindow::afterConnect);
+}
 
+void MainWindow::afterConnect() {
   QTextStream stream(mSocket);
   stream << loginCheckString << separator << username << separator << password
          << separator << ui->showOnlineStatus->isChecked();
@@ -101,9 +112,34 @@ void MainWindow::on_loginButton_clicked() {
   mSocket->flush();
 }
 
-void MainWindow::chatHandler(QString message) {
+void MainWindow::chatHandler(QString message) { ui->chat->append(message); }
 
-  if (message.startsWith(onlineString)) {
+void MainWindow::chatPageHandler(QString message) {
+
+  //  promeniti separator kod servera ?
+
+  if (message.startsWith(successfulLoginString + separator + allOnlineString)) {
+    qDebug() << "ovo sada ispisuje";
+    qDebug() << "ovo je message " << message;
+    QList<QString> messageData = message.split(separator);
+
+    QList<QString>::iterator i;
+
+    for (i = messageData.begin() + 2; i != messageData.end(); i++) {
+      onlineUsersWithShownOnlineStatus.append(*i);
+      qDebug() << "poruke " << *i;
+    }
+
+    ui->onlineUsers->clear();
+
+    for (i = onlineUsersWithShownOnlineStatus.begin();
+         i != onlineUsersWithShownOnlineStatus.end(); i++) {
+      ui->onlineUsers->append(*i);
+    }
+
+    ui->numberOfOnlineUsers->display(onlineUsersWithShownOnlineStatus.length());
+
+  } else if (message.startsWith(onlineString)) {
     QList<QString> messageData = message.split(separator);
     QString username = messageData[1];
     //    qDebug() << "font " << ui->chat->fontWeight();
@@ -113,22 +149,25 @@ void MainWindow::chatHandler(QString message) {
 
     onlineUsersWithShownOnlineStatus.append(username);
     ui->onlineUsers->append(username);
-  } else if (message.startsWith(allOnlineString)) {
+    ui->numberOfOnlineUsers->display(onlineUsersWithShownOnlineStatus.length());
+    //  } else if (message.startsWith(allOnlineString)) {
 
-    QList<QString> messageData = message.split(separator);
+    //    qDebug() << "ovo sada ispisuje";
+    //    qDebug() << "ovo je message " << message;
+    //    QList<QString> messageData = message.split(separator);
 
-    QList<QString>::iterator i;
+    //    QList<QString>::iterator i;
 
-    for (i = messageData.begin() + 1; i != messageData.end(); i++) {
-      onlineUsersWithShownOnlineStatus.append(*i);
-    }
+    //    for (i = messageData.begin() + 1; i != messageData.end(); i++) {
+    //      onlineUsersWithShownOnlineStatus.append(*i);
+    //    }
 
-    ui->onlineUsers->clear();
+    //    ui->onlineUsers->clear();
 
-    for (i = onlineUsersWithShownOnlineStatus.begin();
-         i != onlineUsersWithShownOnlineStatus.end(); i++) {
-      ui->onlineUsers->append(*i);
-    }
+    //    for (i = onlineUsersWithShownOnlineStatus.begin();
+    //         i != onlineUsersWithShownOnlineStatus.end(); i++) {
+    //      ui->onlineUsers->append(*i);
+    //    }
 
     //    for (const auto &i : onlineUsersWithShownOnlineStatus) {
     //      ui->onlineUsers->append(i);
@@ -136,24 +175,25 @@ void MainWindow::chatHandler(QString message) {
   } else if (message.startsWith(offlineString)) {
     QList<QString> messageData = message.split(separator);
     QString username = messageData[1];
-    //    qDebug() << "font " << ui->chat->fontWeight();
-    ui->chat->setFontWeight(75);
-    ui->chat->append(username + " is offline.");
-    ui->chat->setFontWeight(50);
 
-    onlineUsersWithShownOnlineStatus.removeOne(username);
-    ui->onlineUsers->clear();
+    if (!username.isEmpty()) {
+      //    qDebug() << "font " << ui->chat->fontWeight();
+      ui->chat->setFontWeight(75);
+      ui->chat->append(username + " is offline.");
+      ui->chat->setFontWeight(50);
 
-    QList<QString>::iterator i;
+      onlineUsersWithShownOnlineStatus.removeOne(username);
+      ui->onlineUsers->clear();
 
-    for (i = onlineUsersWithShownOnlineStatus.begin();
-         i != onlineUsersWithShownOnlineStatus.end(); i++) {
-      ui->onlineUsers->append(*i);
+      QList<QString>::iterator i;
+
+      for (i = onlineUsersWithShownOnlineStatus.begin();
+           i != onlineUsersWithShownOnlineStatus.end(); i++) {
+        ui->onlineUsers->append(*i);
+      }
+      ui->numberOfOnlineUsers->display(
+          onlineUsersWithShownOnlineStatus.length());
     }
-  } else {
-    QList<QString> messageData = message.split(separator);
-    QString messageText = messageData[1];
-    ui->chat->append(messageText);
   }
 }
 
@@ -198,6 +238,7 @@ void MainWindow::clearInputFieldsChatPage() {
   ui->message->clear();
   ui->chat->clear();
   ui->onlineUsers->clear();
+  ui->numberOfOnlineUsers->display(0);
 }
 
 void MainWindow::clearInputFieldsChangePasswordPage() {
@@ -270,8 +311,12 @@ void MainWindow::accountCheckLogin() {
   QTextStream stream(mSocket);
   auto message = stream.readAll();
   qDebug() << message << message << message;
-  if (message.startsWith("Successful")) {
+  if (message.startsWith(successfulLoginString)) {
     ui->stackedWidget->setCurrentWidget(ui->chatPage);
+
+    // if its successful login see if there are users online to write in online
+    // field
+    chatPageHandler(message);
     qDebug() << "Successful login";
   } else if (message.startsWith("Unsuccessful user doesnt exist")) {
     ui->username->setStyleSheet("border: 1px solid red");
@@ -287,10 +332,18 @@ void MainWindow::accountCheckLogin() {
     qDebug() << "Unsuccessful wrong password";
 
     mSocket->disconnectFromHost();
+  } else if (message.startsWith("Unsuccessful already logged in")) {
+    ui->username->setStyleSheet("background-color: red");
+    //    ui->username->setText("Something wrong");
+    ui->password->setStyleSheet("background-color: red");
+    //    ui->password->setText("Something wrong");
 
   } else if (message.startsWith(changePasswordString)) {
     changePasswordHandler(message);
-
+  } else if (message.startsWith(onlineString) ||
+             message.startsWith(offlineString) ||
+             message.startsWith(allOnlineString)) {
+    chatPageHandler(message);
     // its message from other clients (chat message)
   } else {
     chatHandler(message);
@@ -307,10 +360,11 @@ void MainWindow::on_sendButton_clicked() {
   } else {
     qDebug() << "send button klik " << message;
     QTextStream stream(mSocket);
-    stream << username << separator << message;
+    QString timestamp = QDateTime::currentDateTime().toString().split(" ")[3];
+    stream << "|" << timestamp << "| " << username << separator << message;
     mSocket->flush();
     ui->chat->setFontItalic(true);
-    ui->chat->append(message);
+    ui->chat->append("|" + timestamp + "| Me: " + message);
     ui->chat->setFontItalic(false);
   }
   ui->message->clear();
@@ -361,6 +415,12 @@ void MainWindow::on_confirmChangePassword_clicked() {
     ui->oldPassword->setStyleSheet("border: 1px solid red");
   } else if (newPassword.isEmpty() || newPassword.length() < 3) {
     ui->newPassword->setStyleSheet("border: 1px solid red");
+
+    // if new password is same as old we just set color like its changed
+  } else if (oldPassword == newPassword) {
+    clearInputFieldsChangePasswordPage();
+    ui->oldPassword->setStyleSheet("border: 1px solid green");
+    ui->newPassword->setStyleSheet("border: 1px solid green");
   } else {
     // needed so when repeatedly client changes password other colors dont stay
     ui->oldPassword->setStyleSheet("border: 1px solid gray");

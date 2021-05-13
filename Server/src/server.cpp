@@ -81,6 +81,13 @@ bool Server::startServer(quint16 port) {
     qDebug() << "ne radi";
   }
 
+  QString s = "prvi$$$drugi$$$treci$$$";
+  QList<QString> lista = s.split("$$$");
+  for (int i = 0; i < lista.length(); i++) {
+    qDebug() << "broj " << i << " string " << lista[i];
+  }
+  qDebug() << "lista length " << lista.length();
+
   // listening to all incoming connections
   return listen(QHostAddress::Any, port);
 }
@@ -205,6 +212,8 @@ void Server::serveClient(Client *client) {
       numRows = query.at() + 1;
     }
 
+    query.finish();
+
     // if there is no rows with that username we add user to database
     if (numRows == 0) {
       streamFrom << "Successful";
@@ -222,6 +231,8 @@ void Server::serveClient(Client *client) {
       query.bindValue(":username", username);
       query.bindValue(":password", hashedPassword);
       query.exec();
+
+      query.finish();
 
     } else {
       streamFrom << "Unsuccessful";
@@ -255,139 +266,172 @@ void Server::serveClient(Client *client) {
     qDebug() << "username" << username;
     qDebug() << "username" << showOnlineStatus;
 
-    QSqlQuery query(db);
+    bool alreadyLoggedIn = false;
 
-    query.prepare("SELECT * FROM Accounts where username=(:username)");
-
-    query.bindValue(":username", username);
-
-    query.exec();
-    int numRows;
-
-    // First way
-    if (db.driver()->hasFeature(QSqlDriver::QuerySize)) {
-      qDebug() << "prvo";
-      numRows = query.size();
-
-    } else {
-      qDebug() << "drugo";
-      // this can be very slow
-      query.at();
-      numRows = query.at() + 1;
+    QMapIterator<int, Client *> iterator(clients);
+    while (iterator.hasNext()) {
+      iterator.next();
+      auto c = iterator.value();
+      if (c != client && c != NULL) {
+        if (c->getUsername() == username) {
+          alreadyLoggedIn = true;
+          break;
+        }
+      }
     }
-    qDebug() << numRows;
 
-    // if there is no rows with that username then that is wrong username
-    if (numRows == 0) {
-      streamFrom << "Unsuccessful user doesnt exist";
-      qDebug() << "Unsuccessful user doesnt exist";
+    if (!alreadyLoggedIn) {
 
-    } else {
-      query.next();
-      if (query.isValid()) {
-        qDebug() << query.isValid();
-        // there is instance in database with that username
-        int idDb = query.value(0).toInt();
-        QString usernameDb = query.value(1).toString();
-        QString passwordDb = query.value(2).toString();
-        qDebug() << idDb << usernameDb << passwordDb;
+      QSqlQuery query(db);
 
-        // checking if password is correct
-        QString unhashedPassword;
-        SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
-        unhashedPassword = crypto.decryptToString(passwordDb);
+      query.prepare("SELECT * FROM Accounts where username=(:username)");
 
-        qDebug() << "unhashed password" << unhashedPassword;
+      query.bindValue(":username", username);
 
-        if (unhashedPassword == password) {
-          streamFrom << "Successful";
-          qDebug() << "Successful";
+      query.exec();
+      int numRows;
 
-          //          if (clients[client->socketDesc()] != NULL) {
-          //            clients[client->socketDesc()]->setUsername(username);
-          //            qDebug() << "postavljam username na " << username << "
-          //            sada je "
-          //                     <<
-          //                     clients[client->socketDesc()]->getUsername();
-          //          } else {
+      // First way
+      if (db.driver()->hasFeature(QSqlDriver::QuerySize)) {
+        qDebug() << "prvo";
+        numRows = query.size();
 
-          //          client->setUsername(username);
-          //          clients[client->socketDesc()] = client;
+      } else {
+        qDebug() << "drugo";
+        // this can be very slow
+        query.at();
+        numRows = query.at() + 1;
+      }
+      qDebug() << numRows;
 
-          clients[client->socketDesc()]->setUsername(username);
-          clients[client->socketDesc()]->setShowOnlineStatus(showOnlineStatus);
+      // if there is no rows with that username then that is wrong username
+      if (numRows == 0) {
+        streamFrom << "Unsuccessful user doesnt exist";
+        qDebug() << "Unsuccessful user doesnt exist";
 
-          qDebug() << "provera nakon logina ime clienta je "
-                   << clients[client->socketDesc()]->getUsername();
-          //          }
+        client->flush();
 
-          // send list of online clients to new client
-          QMapIterator<int, Client *> iterator(clients);
-          QString onlineUsers = "";
-          while (iterator.hasNext()) {
-            iterator.next();
-            auto c = iterator.value();
-            if (c != client && c != NULL && c->getShowOnlineStatus()) {
-              onlineUsers.append(c->getUsername());
-              onlineUsers.append(separator);
-            }
-          }
-          QTextStream stream(client);
-          stream << allOnlineString << separator << onlineUsers;
-          client->flush();
+      } else {
+        query.next();
+        if (query.isValid()) {
+          qDebug() << query.isValid();
+          // there is instance in database with that username
+          int idDb = query.value(0).toInt();
+          QString usernameDb = query.value(1).toString();
+          QString passwordDb = query.value(2).toString();
+          qDebug() << idDb << usernameDb << passwordDb;
 
-          // send to other clients message that client is online only if he set
-          // showOnlineStatus
-          if (showOnlineStatus) {
+          // checking if password is correct
+          QString unhashedPassword;
+          SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
+          unhashedPassword = crypto.decryptToString(passwordDb);
+
+          qDebug() << "unhashed password" << unhashedPassword;
+
+          if (unhashedPassword == password) {
+            //            streamFrom << successfulLoginString;
+            //            client->flush();
+            qDebug() << "Successful";
+
+            //          if (clients[client->socketDesc()] != NULL) {
+            //            clients[client->socketDesc()]->setUsername(username);
+            //            qDebug() << "postavljam username na " << username << "
+            //            sada je "
+            //                     <<
+            //                     clients[client->socketDesc()]->getUsername();
+            //          } else {
+
+            //          client->setUsername(username);
+            //          clients[client->socketDesc()] = client;
+
+            clients[client->socketDesc()]->setUsername(username);
+            clients[client->socketDesc()]->setShowOnlineStatus(
+                showOnlineStatus);
+
+            qDebug() << "provera nakon logina ime clienta je "
+                     << clients[client->socketDesc()]->getUsername();
+            //          }
+
+            // send list of online clients to new client
             QMapIterator<int, Client *> iterator(clients);
+            QString onlineUsers = "";
             while (iterator.hasNext()) {
               iterator.next();
               auto c = iterator.value();
-              if (c != client && c != NULL) {
-                QTextStream stream(c);
-                stream << onlineString << separator << client->getUsername();
-                c->flush();
-                qDebug() << "login poruka od " << client->getUsername();
+              if (c != client && c != NULL && c->getShowOnlineStatus()) {
+                onlineUsers.append(separator);
+                onlineUsers.append(c->getUsername());
+                //                onlineUsers.append(separator);
               }
             }
+            // remove last separator (after last user)
+            // if onlineUsers is empty this does nothing
+            //            onlineUsers.chop(separator.length());
+            // samo jednom reaguje na jedan signal (sa jednim slotom)
+            qDebug() << "client is valid " << client->isValid();
+            qDebug() << "all users " << onlineUsers;
+            streamFrom << successfulLoginString << separator << allOnlineString
+                       << onlineUsers;
+
+            qDebug() << "ovde " << successfulLoginString << separator
+                     << allOnlineString << separator << onlineUsers;
+            client->flush();
+
+            // send to other clients message that client is online only if he
+            // set showOnlineStatus
+            if (showOnlineStatus) {
+              QMapIterator<int, Client *> iterator(clients);
+              while (iterator.hasNext()) {
+                iterator.next();
+                auto c = iterator.value();
+                if (c != client && c != NULL) {
+                  QTextStream stream(c);
+                  stream << onlineString << separator << client->getUsername();
+                  c->flush();
+                  qDebug() << "login poruka od " << client->getUsername();
+                }
+              }
+            }
+
+            //          for (const auto &c : allClients) {
+            //            if (c != client) {
+            //              QTextStream stream(c);
+            //              stream << username << " is online.";
+            //              c->flush();
+            //              qDebug() << "login poruka od " <<
+            //              client->getUsername();
+            //            }
+            //          }
+
+            //          if (clients[client->socketDesc()] == NULL) {
+            //            clients[client->socketDesc()]->setUsername(username);
+            //            qDebug() << "postavljam username na " << username << "
+            //            sada je "
+            //                     <<
+            //                     clients[client->socketDesc()]->getUsername();
+            //          } else {
+            //            clients[client->socketDesc()] = client;
+            //          }
+
+          } else {
+
+            streamFrom << "Unsuccessful wrong password";
+            client->flush();
+            qDebug() << "Unsuccessful wrong password";
           }
-
-          //          for (const auto &c : allClients) {
-          //            if (c != client) {
-          //              QTextStream stream(c);
-          //              stream << username << " is online.";
-          //              c->flush();
-          //              qDebug() << "login poruka od " <<
-          //              client->getUsername();
-          //            }
-          //          }
-
-          //          if (clients[client->socketDesc()] == NULL) {
-          //            clients[client->socketDesc()]->setUsername(username);
-          //            qDebug() << "postavljam username na " << username << "
-          //            sada je "
-          //                     <<
-          //                     clients[client->socketDesc()]->getUsername();
-          //          } else {
-          //            clients[client->socketDesc()] = client;
-          //          }
-
-        } else {
-
-          streamFrom << "Unsuccessful wrong password";
-          qDebug() << "Unsuccessful wrong password";
         }
-      }
 
+        //        client->flush();
+      }
+      query.finish();
+    } else {
+      streamFrom << "Unsuccessful already logged in";
       client->flush();
     }
     // if client logouts
   } else if (message.startsWith(logoutString)) {
     QList<QString> messageData = message.split(separator);
     QString username = messageData[1];
-
-    // setting client in map that server has to null
-    clients[client->socketDesc()] = NULL;
 
     if (client->getShowOnlineStatus()) {
       QMapIterator<int, Client *> iterator(clients);
@@ -396,12 +440,15 @@ void Server::serveClient(Client *client) {
         auto c = iterator.value();
         if (c != client && c != NULL) {
           QTextStream stream(c);
-          stream << offlineString << separator << client->getUsername();
+          stream << offlineString << separator << username;
           c->flush();
           qDebug() << "logout poruka od " << client->getUsername();
         }
       }
     }
+
+    // setting client in map that server has to null
+    clients[client->socketDesc()] = NULL;
 
     //    clients[client->socketDesc()] = NULL;
     //    client->setUsername(nullptr);
@@ -446,6 +493,8 @@ void Server::serveClient(Client *client) {
 
     qDebug() << "unhashed password" << unhashedPassword;
 
+    query.finish();
+
     if (unhashedPassword == oldPassword) {
 
       QString newPasswordHashed = crypto.encryptToString(newPassword);
@@ -474,6 +523,8 @@ void Server::serveClient(Client *client) {
                  << "Successful change password";
       qDebug() << "Successful change password";
 
+      query.finish();
+
       qDebug() << "query " << query.lastQuery();
       //      auto a = query.exec();
       //      qDebug() << "exec update";
@@ -498,8 +549,9 @@ void Server::serveClient(Client *client) {
       QString unhashedPassword;
       SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
       unhashedPassword = crypto.decryptToString(passwordDb);
-
       qDebug() << "novi password " << unhashedPassword;
+
+      query.finish();
 
     } else {
       streamFrom << changePasswordString << separator
@@ -510,7 +562,7 @@ void Server::serveClient(Client *client) {
     // basic message
   } else {
     QList<QString> messageData = message.split(separator);
-    QString username = messageData[0];
+    QString usernameAndTimestamp = messageData[0];
     QString messageText = messageData[1];
 
     // sending message to all clients except the one who sent it
@@ -520,7 +572,7 @@ void Server::serveClient(Client *client) {
       auto c = iterator.value();
       if (c != client && c != NULL) {
         QTextStream stream(c);
-        stream << client->getUsername() << " sent: " << messageText;
+        stream << usernameAndTimestamp << " sent: " << messageText;
         c->flush();
         qDebug() << "obicna poruka od " << client->getUsername() << " "
                  << messageText;

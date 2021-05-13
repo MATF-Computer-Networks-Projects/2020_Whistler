@@ -32,6 +32,7 @@ private slots:
   void on_sendButton_clicked();
 
   void chatHandler(QString message);
+  void chatPageHandler(QString message);
   void changePasswordHandler(QString message);
 
   void on_logout_clicked();
@@ -47,6 +48,8 @@ private slots:
   void clearInputFieldsSignupPage();
   void clearInputFieldsChatPage();
   void clearInputFieldsChangePasswordPage();
+
+  void afterConnect();
 
 private:
   Ui::MainWindow *ui;
@@ -67,6 +70,8 @@ private:
   QString offlineString = "0xa$121322";
   QString changePasswordString = "0xa$112322";
   QString allOnlineString = "0xa$111432";
+  QString successfulLoginString = "0xa$234232";
+  //  QString allOnlineString = successfulLoginString;
   QString separator = "$$$";
   int serverPort = 12345;
 };

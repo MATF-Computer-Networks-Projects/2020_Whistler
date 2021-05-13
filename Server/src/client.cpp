@@ -1,7 +1,9 @@
 #include "headers/client.h"
 
-Client::Client(qintptr socketDesc, QObject *parent)
-    : QTcpSocket(parent), mSocketDesc(socketDesc) {
+Client::Client(qintptr socketDesc, QString username, bool showOnlineStatus,
+               QObject *parent)
+    : QTcpSocket(parent), mSocketDesc(socketDesc), mUsername(username),
+      mShowOnlineStatus(showOnlineStatus) {
 
   setSocketDescriptor(socketDesc);
 
@@ -17,3 +19,13 @@ void Client::emitReadSignal() { emit readSignal(this); }
 void Client::emitStateChangedSignal(int state) {
   emit stateChangedSignal(this, state);
 }
+
+QString Client::getUsername() { return mUsername; }
+
+void Client::setUsername(QString username) { mUsername = username; }
+
+void Client::setShowOnlineStatus(bool showOnlineStatus) {
+  mShowOnlineStatus = showOnlineStatus;
+}
+
+bool Client::getShowOnlineStatus() { return mShowOnlineStatus; }
