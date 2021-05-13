@@ -19,6 +19,9 @@ public:
 
 private:
   QList<Client *> allClients;
+  QList<Client *> loggedIn;
+
+  QMap<int, Client *> clients;
 
   QString dbHostname;
   QString dbUsername;
@@ -29,6 +32,9 @@ private:
 
   QString signupCheckString = "0xa$124432";
   QString loginCheckString = "0xa$124jk2";
+  QString logoutString = "0xa$1212k2";
+  QString onlineString = "0xa$121422";
+  QString offlineString = "0xa$121322";
   QString separator = "$$$";
 
   quint64 hashingValue = Q_UINT64_C(0x0c2ad4a4acb9f023);

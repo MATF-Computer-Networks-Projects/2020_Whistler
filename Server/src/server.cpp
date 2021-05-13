@@ -87,17 +87,19 @@ bool Server::startServer(quint16 port) {
 
 void Server::incomingConnection(qintptr socketDesc) {
   qDebug() << "Connected client with socket descriptor:" << socketDesc;
-  auto socket = new Client(socketDesc, this);
-  //  allClients << socket;
+  auto socket = new Client(socketDesc, NULL, this);
+  allClients << socket;
 
-  for (const auto &c : allClients) {
-    // let every other client know new client has connected
-    if (c != socket) {
-      QTextStream stream(c);
-      stream << "Connected client: " << socket->socketDescriptor();
-      c->flush();
-    }
-  }
+  clients[socket->socketDesc()] = socket;
+
+  //  for (const auto &c : allClients) {
+  //    // let every other client know new client has connected
+  //    if (c != socket) {
+  //      QTextStream stream(c);
+  //      stream << "Connected client: " << socket->socketDescriptor();
+  //      c->flush();
+  //    }
+  //  }
   // when any client writes message, server sends that message to everyone else
   // (with broadcastAll)
   connect(socket, &Client::readSignal, this, &Server::serveClient);
@@ -113,13 +115,48 @@ void Server::clientDisconnected(Client *client, int state) {
              << client->socketDesc();
     allClients.removeOne(client);
 
-    // notice everyone that client has disconnected
-    for (const auto &c : allClients) {
-      QTextStream stream(c);
-      stream << "Server: client: " << client->socketDesc()
-             << " has disconnected";
-      c->flush();
+    // setting client in map that server has to null
+    clients[client->socketDesc()] = NULL;
+
+    // if name is null then client never logged in
+    //    if (clients[client->socketDesc()]->getUsername().isNull()) {
+    //      qDebug() << "username je null";
+
+    // if its not null we notice everyone else that he disconnected
+    //    } else {
+
+    QMapIterator<int, Client *> iterator(clients);
+    while (iterator.hasNext()) {
+      iterator.next();
+      auto c = iterator.value();
+      if (c != client && c != NULL) {
+        QTextStream stream(c);
+        stream << offlineString << separator << client->getUsername()
+               << " is offline.";
+        qDebug() << client->getUsername();
+        c->flush();
+      }
     }
+    //      client->setUsername(NULL);
+    //        QMap<int, Client *>::iterator i;
+    //        for (i = map.begin(); i != map.end(); ++i)
+    //            cout << i.key() << ": " << i.value() << Qt::endl;
+    //      for (const auto &c : allClients) {
+    //        QTextStream stream(c);
+    //        stream << client->username() << " is offline.";
+    //        c->flush();
+    //      }
+    //    }
+
+    // only if client has logged in first
+    //    if (!client->username().isNull()) {
+    //      // notice everyone that client has disconnected
+    //      for (const auto &c : allClients) {
+    //        QTextStream stream(c);
+    //        stream << client->username() << " is offline.";
+    //        c->flush();
+    //      }
+    //    }
   }
 }
 
@@ -261,8 +298,54 @@ void Server::serveClient(Client *client) {
         if (unhashedPassword == password) {
           streamFrom << "Successful";
           qDebug() << "Successful";
-          // add socket of client to allClients
-          allClients << client;
+
+          //          if (clients[client->socketDesc()] != NULL) {
+          //            clients[client->socketDesc()]->setUsername(username);
+          //            qDebug() << "postavljam username na " << username << "
+          //            sada je "
+          //                     <<
+          //                     clients[client->socketDesc()]->getUsername();
+          //          } else {
+          client->setUsername(username);
+          clients[client->socketDesc()] = client;
+
+          qDebug() << "provera nakon logina ime clienta je "
+                   << clients[client->socketDesc()]->getUsername();
+          //          }
+
+          QMapIterator<int, Client *> iterator(clients);
+          while (iterator.hasNext()) {
+            iterator.next();
+            auto c = iterator.value();
+            if (c != client && c != NULL) {
+              QTextStream stream(c);
+              stream << onlineString << separator << client->getUsername()
+                     << " is online ";
+              c->flush();
+              qDebug() << "login poruka od " << client->getUsername();
+            }
+          }
+
+          //          for (const auto &c : allClients) {
+          //            if (c != client) {
+          //              QTextStream stream(c);
+          //              stream << username << " is online.";
+          //              c->flush();
+          //              qDebug() << "login poruka od " <<
+          //              client->getUsername();
+          //            }
+          //          }
+
+          //          if (clients[client->socketDesc()] == NULL) {
+          //            clients[client->socketDesc()]->setUsername(username);
+          //            qDebug() << "postavljam username na " << username << "
+          //            sada je "
+          //                     <<
+          //                     clients[client->socketDesc()]->getUsername();
+          //          } else {
+          //            clients[client->socketDesc()] = client;
+          //          }
+
         } else {
 
           streamFrom << "Unsuccessful wrong password";
@@ -272,6 +355,37 @@ void Server::serveClient(Client *client) {
 
       client->flush();
     }
+    // if client logouts
+  } else if (message.startsWith(logoutString)) {
+    QList<QString> messageData = message.split(separator);
+    QString username = messageData[1];
+
+    // setting client in map that server has to null
+    clients[client->socketDesc()] = NULL;
+
+    QMapIterator<int, Client *> iterator(clients);
+    while (iterator.hasNext()) {
+      iterator.next();
+      auto c = iterator.value();
+      if (c != client && c != NULL) {
+        QTextStream stream(c);
+        stream << offlineString << separator << client->getUsername()
+               << " is offline.";
+        c->flush();
+        qDebug() << "logout poruka od " << client->getUsername();
+      }
+    }
+
+    //    clients[client->socketDesc()] = NULL;
+    //    client->setUsername(nullptr);
+
+    //    for (const auto &c : allClients) {
+    //      if (c != client) {
+    //        QTextStream stream(c);
+    //        stream << username << " is offline.";
+    //        c->flush();
+    //      }
+    //    }
 
     // basic message
   } else {
@@ -280,12 +394,26 @@ void Server::serveClient(Client *client) {
     QString messageText = messageData[1];
 
     // sending message to all clients except the one who sent it
-    for (const auto &c : allClients) {
-      if (c != client) {
+    QMapIterator<int, Client *> iterator(clients);
+    while (iterator.hasNext()) {
+      iterator.next();
+      auto c = iterator.value();
+      if (c != client && c != NULL) {
         QTextStream stream(c);
-        stream << username << " sent: " << messageText;
+        stream << client->getUsername() << " sent: " << messageText;
         c->flush();
+        qDebug() << "obicna poruka od " << client->getUsername() << " "
+                 << messageText;
       }
     }
+
+    // sending message to all clients except the one who sent it
+    //    for (const auto &c : allClients) {
+    //      if (c != client) {
+    //        QTextStream stream(c);
+    //        stream << username << " sent: " << messageText;
+    //        c->flush();
+    //      }
+    //    }
   }
 }

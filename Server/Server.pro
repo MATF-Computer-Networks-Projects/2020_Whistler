@@ -1,5 +1,7 @@
 QT       += core gui
 QT +=network
+QT+=sql
+
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -17,11 +19,13 @@ VPATH += \
 SOURCES += \
     main.cpp \
     server.cpp \
-    client.cpp
+    client.cpp \
+    simplecrypt.cpp
 
 HEADERS += \
     server.h \
-    client.h
+    client.h \
+    simplecrypt.h
 
 FORMS += \
     mainwindow.ui

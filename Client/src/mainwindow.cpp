@@ -18,8 +18,8 @@ MainWindow::MainWindow(QWidget *parent)
   ui->passwordSignupPage->setValidator(
       new QRegExpValidator(QRegExp(".{3,20}"), this));
 
-  mSocket = new QTcpSocket(this);
-  mSocket->connectToHost("localhost", serverPort);
+  //  mSocket = new QTcpSocket(this);
+  //  mSocket->connectToHost("localhost", serverPort);
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -80,7 +80,19 @@ void MainWindow::on_loginButton_clicked() {
   mSocket->flush();
 }
 
-void MainWindow::chatHandler(QString message) { ui->chat->append(message); }
+void MainWindow::chatHandler(QString message) {
+
+  if (message.startsWith(onlineString) || message.startsWith(offlineString)) {
+    QList<QString> messageData = message.split(separator);
+    QString messageText = messageData[1];
+    //    qDebug() << "font " << ui->chat->fontWeight();
+    ui->chat->setFontWeight(75);
+    ui->chat->append(messageText);
+    ui->chat->setFontWeight(50);
+  } else {
+    ui->chat->append(message);
+  }
+}
 
 void MainWindow::on_back_clicked() {
   ui->stackedWidget->setCurrentWidget(ui->loginPage);
@@ -89,23 +101,26 @@ void MainWindow::on_back_clicked() {
 
 void MainWindow::clearInputFields() {
 
-  // clear input fields of login page
-  ui->username->clear();
-  ui->password->clear();
-  ui->hostname->clear();
-  ui->port->clear();
+  //  // clear input fields of login page
+  //  ui->username->clear();
+  //  ui->password->clear();
+  //  ui->hostname->clear();
+  //  ui->port->clear();
 
-  ui->username->setStyleSheet("border: 1px solid gray");
-  ui->password->setStyleSheet("border: 1px solid gray");
-  ui->hostname->setStyleSheet("border: 1px solid gray");
-  ui->port->setStyleSheet("border: 1px solid gray");
+  //  ui->username->setStyleSheet("border: 1px solid gray");
+  //  ui->password->setStyleSheet("border: 1px solid gray");
+  //  ui->hostname->setStyleSheet("border: 1px solid gray");
+  //  ui->port->setStyleSheet("border: 1px solid gray");
 
-  // clear input fields of signup page
-  ui->usernameSignupPage->clear();
-  ui->passwordSignupPage->clear();
+  //  // clear input fields of signup page
+  //  ui->usernameSignupPage->clear();
+  //  ui->passwordSignupPage->clear();
 
-  ui->usernameSignupPage->setStyleSheet("border: 1px solid gray");
-  ui->passwordSignupPage->setStyleSheet("border: 1px solid gray");
+  //  ui->usernameSignupPage->setStyleSheet("border: 1px solid gray");
+  //  ui->passwordSignupPage->setStyleSheet("border: 1px solid gray");
+
+  ui->message->clear();
+  ui->chat->clear();
 }
 
 void MainWindow::on_signupButtonSignupPage_clicked() {
@@ -169,6 +184,7 @@ void MainWindow::accountCheckSignup() {
 void MainWindow::accountCheckLogin() {
   QTextStream stream(mSocket);
   auto message = stream.readAll();
+  qDebug() << message << message << message;
   if (message.startsWith("Successful")) {
     ui->stackedWidget->setCurrentWidget(ui->chatPage);
     qDebug() << "Successful login";
@@ -196,10 +212,12 @@ void MainWindow::accountCheckLogin() {
 }
 
 void MainWindow::on_sendButton_clicked() {
+
   QString message = ui->message->text();
   if (message.isEmpty()) {
 
   } else {
+    qDebug() << "send button klik " << message;
     QTextStream stream(mSocket);
     stream << username << separator << message;
     mSocket->flush();
@@ -207,8 +225,18 @@ void MainWindow::on_sendButton_clicked() {
     //    tmp.append(username);
     //    tmp.append("]:");
     //    tmp.append(message);
+    ui->chat->setFontItalic(true);
     ui->chat->append(message);
+    ui->chat->setFontItalic(false);
   }
   ui->message->clear();
   ui->message->setFocus();
+}
+
+void MainWindow::on_logout_clicked() {
+  QTextStream stream(mSocket);
+  stream << logoutString << separator << username;
+  mSocket->flush();
+  clearInputFields();
+  ui->stackedWidget->setCurrentWidget(ui->loginPage);
 }

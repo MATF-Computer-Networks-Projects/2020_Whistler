@@ -33,6 +33,8 @@ private slots:
 
   void chatHandler(QString message);
 
+  void on_logout_clicked();
+
 private:
   Ui::MainWindow *ui;
   QTcpSocket *mSocket;
@@ -43,6 +45,9 @@ private:
 
   QString signupCheckString = "0xa$124432";
   QString loginCheckString = "0xa$124jk2";
+  QString logoutString = "0xa$1212k2";
+  QString onlineString = "0xa$121422";
+  QString offlineString = "0xa$121322";
   QString separator = "$$$";
   int serverPort = 12345;
 
