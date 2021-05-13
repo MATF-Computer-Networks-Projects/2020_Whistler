@@ -27,6 +27,14 @@ MainWindow::MainWindow(QWidget *parent)
 
   ui->newPassword->setValidator(new QRegExpValidator(QRegExp(".{3,20}"), this));
 
+  // setting tab order so we can use tab
+  this->setTabOrder(ui->hostname, ui->port);
+  this->setTabOrder(ui->port, ui->username);
+  this->setTabOrder(ui->username, ui->password);
+
+  // setting tab order so we can use tab
+  this->setTabOrder(ui->usernameSignupPage, ui->passwordSignupPage);
+
   //  mSocket = new QTcpSocket(this);
   //  mSocket->connectToHost("localhost", serverPort);
 }
@@ -85,21 +93,67 @@ void MainWindow::on_loginButton_clicked() {
           &MainWindow::accountCheckLogin);
 
   QTextStream stream(mSocket);
-  stream << loginCheckString << separator << username << separator << password;
+  stream << loginCheckString << separator << username << separator << password
+         << separator << ui->showOnlineStatus->isChecked();
+  qDebug() << loginCheckString << separator << username << separator << password
+           << separator << ui->showOnlineStatus->isChecked();
+
   mSocket->flush();
 }
 
 void MainWindow::chatHandler(QString message) {
 
-  if (message.startsWith(onlineString) || message.startsWith(offlineString)) {
+  if (message.startsWith(onlineString)) {
     QList<QString> messageData = message.split(separator);
-    QString messageText = messageData[1];
+    QString username = messageData[1];
     //    qDebug() << "font " << ui->chat->fontWeight();
     ui->chat->setFontWeight(75);
-    ui->chat->append(messageText);
+    ui->chat->append(username + " is online.");
     ui->chat->setFontWeight(50);
+
+    onlineUsersWithShownOnlineStatus.append(username);
+    ui->onlineUsers->append(username);
+  } else if (message.startsWith(allOnlineString)) {
+
+    QList<QString> messageData = message.split(separator);
+
+    QList<QString>::iterator i;
+
+    for (i = messageData.begin() + 1; i != messageData.end(); i++) {
+      onlineUsersWithShownOnlineStatus.append(*i);
+    }
+
+    ui->onlineUsers->clear();
+
+    for (i = onlineUsersWithShownOnlineStatus.begin();
+         i != onlineUsersWithShownOnlineStatus.end(); i++) {
+      ui->onlineUsers->append(*i);
+    }
+
+    //    for (const auto &i : onlineUsersWithShownOnlineStatus) {
+    //      ui->onlineUsers->append(i);
+    //    }
+  } else if (message.startsWith(offlineString)) {
+    QList<QString> messageData = message.split(separator);
+    QString username = messageData[1];
+    //    qDebug() << "font " << ui->chat->fontWeight();
+    ui->chat->setFontWeight(75);
+    ui->chat->append(username + " is offline.");
+    ui->chat->setFontWeight(50);
+
+    onlineUsersWithShownOnlineStatus.removeOne(username);
+    ui->onlineUsers->clear();
+
+    QList<QString>::iterator i;
+
+    for (i = onlineUsersWithShownOnlineStatus.begin();
+         i != onlineUsersWithShownOnlineStatus.end(); i++) {
+      ui->onlineUsers->append(*i);
+    }
   } else {
-    ui->chat->append(message);
+    QList<QString> messageData = message.split(separator);
+    QString messageText = messageData[1];
+    ui->chat->append(messageText);
   }
 }
 
@@ -143,6 +197,7 @@ void MainWindow::clearInputFieldsChatPage() {
 
   ui->message->clear();
   ui->chat->clear();
+  ui->onlineUsers->clear();
 }
 
 void MainWindow::clearInputFieldsChangePasswordPage() {
@@ -233,9 +288,10 @@ void MainWindow::accountCheckLogin() {
 
     mSocket->disconnectFromHost();
 
-    // its message from other clients (chat message)
   } else if (message.startsWith(changePasswordString)) {
     changePasswordHandler(message);
+
+    // its message from other clients (chat message)
   } else {
     chatHandler(message);
   }
@@ -287,6 +343,9 @@ void MainWindow::on_logout_clicked() {
   //  clearInputFields();
   clearInputFieldsChatPage();
   ui->stackedWidget->setCurrentWidget(ui->loginPage);
+
+  onlineUsersWithShownOnlineStatus.clear();
+  mSocket->disconnectFromHost();
 }
 
 void MainWindow::on_changePassword_clicked() {

@@ -56,6 +56,8 @@ private:
   QString hostname;
   QString port;
 
+  QList<QString> onlineUsersWithShownOnlineStatus;
+
   QString serverHostname = "localhost";
 
   QString signupCheckString = "0xa$124432";
@@ -64,6 +66,7 @@ private:
   QString onlineString = "0xa$121422";
   QString offlineString = "0xa$121322";
   QString changePasswordString = "0xa$112322";
+  QString allOnlineString = "0xa$111432";
   QString separator = "$$$";
   int serverPort = 12345;
 };
