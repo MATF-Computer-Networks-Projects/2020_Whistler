@@ -18,6 +18,15 @@ MainWindow::MainWindow(QWidget *parent)
   ui->passwordSignupPage->setValidator(
       new QRegExpValidator(QRegExp(".{3,20}"), this));
 
+  ui->username->setValidator(
+      new QRegExpValidator(QRegExp("[a-zA-Z0-9]{3,20}"), this));
+
+  ui->password->setValidator(new QRegExpValidator(QRegExp(".{3,20}"), this));
+
+  ui->oldPassword->setValidator(new QRegExpValidator(QRegExp(".{3,20}"), this));
+
+  ui->newPassword->setValidator(new QRegExpValidator(QRegExp(".{3,20}"), this));
+
   //  mSocket = new QTcpSocket(this);
   //  mSocket->connectToHost("localhost", serverPort);
 }
@@ -38,7 +47,7 @@ void MainWindow::on_loginButton_clicked() {
   hostname = ui->hostname->text();
   port = ui->port->text();
 
-  if (username.isEmpty()) {
+  if (username.isEmpty() || username.length() < 3) {
     //    ui->username->setStyleSheet("background-color: red");
     ui->username->setStyleSheet("border: 1px solid red");
 
@@ -48,7 +57,7 @@ void MainWindow::on_loginButton_clicked() {
     ui->username->setStyleSheet("border: 1px solid gray");
   }
 
-  if (password.isEmpty()) {
+  if (password.isEmpty() || password.length() < 3) {
     //    ui->username->setStyleSheet("background-color: red");
     ui->password->setStyleSheet("border: 1px solid red");
   } else {
@@ -101,29 +110,47 @@ void MainWindow::on_back_clicked() {
 
 void MainWindow::clearInputFields() {
 
-  //  // clear input fields of login page
-  //  ui->username->clear();
-  //  ui->password->clear();
-  //  ui->hostname->clear();
-  //  ui->port->clear();
+  clearInputFieldsLoginPage();
+  clearInputFieldsSignupPage();
+  clearInputFieldsChatPage();
+  clearInputFieldsChangePasswordPage();
+}
 
-  //  ui->username->setStyleSheet("border: 1px solid gray");
-  //  ui->password->setStyleSheet("border: 1px solid gray");
-  //  ui->hostname->setStyleSheet("border: 1px solid gray");
-  //  ui->port->setStyleSheet("border: 1px solid gray");
+void MainWindow::clearInputFieldsLoginPage() {
+  // clear input fields of login page
+  ui->username->clear();
+  ui->password->clear();
+  ui->hostname->clear();
+  ui->port->clear();
 
-  //  // clear input fields of signup page
-  //  ui->usernameSignupPage->clear();
-  //  ui->passwordSignupPage->clear();
+  ui->username->setStyleSheet("border: 1px solid gray");
+  ui->password->setStyleSheet("border: 1px solid gray");
+  ui->hostname->setStyleSheet("border: 1px solid gray");
+  ui->port->setStyleSheet("border: 1px solid gray");
+}
 
-  //  ui->usernameSignupPage->setStyleSheet("border: 1px solid gray");
-  //  ui->passwordSignupPage->setStyleSheet("border: 1px solid gray");
+void MainWindow::clearInputFieldsSignupPage() {
+
+  // clear input fields of signup page
+  ui->usernameSignupPage->clear();
+  ui->passwordSignupPage->clear();
+
+  ui->usernameSignupPage->setStyleSheet("border: 1px solid gray");
+  ui->passwordSignupPage->setStyleSheet("border: 1px solid gray");
+}
+
+void MainWindow::clearInputFieldsChatPage() {
 
   ui->message->clear();
   ui->chat->clear();
+}
 
+void MainWindow::clearInputFieldsChangePasswordPage() {
   ui->oldPassword->clear();
   ui->newPassword->clear();
+
+  ui->oldPassword->setStyleSheet("border: 1px solid gray");
+  ui->newPassword->setStyleSheet("border: 1px solid gray");
 }
 
 void MainWindow::on_signupButtonSignupPage_clicked() {
@@ -239,12 +266,13 @@ void MainWindow::changePasswordHandler(QString message) {
   auto messageFromServer = stream.readAll();
   QList<QString> messageData = message.split(separator);
   QString messageText = messageData[1];
-  qDebug() << message << message << message;
+  qDebug() << messageText << messageText << messageText;
   if (messageText.startsWith("Successful change password")) {
     //      ui->stackedWidget->setCurrentWidget(ui->chatPage);
-    ui->oldPassword->clear();
+
+    clearInputFieldsChangePasswordPage();
+
     ui->oldPassword->setStyleSheet("border: 1px solid green");
-    ui->newPassword->clear();
     ui->newPassword->setStyleSheet("border: 1px solid green");
     qDebug() << "Successful change password";
   } else {
@@ -256,7 +284,8 @@ void MainWindow::on_logout_clicked() {
   QTextStream stream(mSocket);
   stream << logoutString << separator << username;
   mSocket->flush();
-  clearInputFields();
+  //  clearInputFields();
+  clearInputFieldsChatPage();
   ui->stackedWidget->setCurrentWidget(ui->loginPage);
 }
 
@@ -268,15 +297,24 @@ void MainWindow::on_changePassword_clicked() {
 void MainWindow::on_confirmChangePassword_clicked() {
   QString oldPassword = ui->oldPassword->text();
   QString newPassword = ui->newPassword->text();
-  ui->oldPassword->setStyleSheet("border: 1px solid gray");
-  ui->newPassword->setStyleSheet("border: 1px solid gray");
-  QTextStream stream(mSocket);
-  stream << changePasswordString << separator << username << separator
-         << oldPassword << separator << newPassword;
-  mSocket->flush();
-  clearInputFields();
+
+  if (oldPassword.isEmpty() || oldPassword.length() < 3) {
+    ui->oldPassword->setStyleSheet("border: 1px solid red");
+  } else if (newPassword.isEmpty() || newPassword.length() < 3) {
+    ui->newPassword->setStyleSheet("border: 1px solid red");
+  } else {
+    // needed so when repeatedly client changes password other colors dont stay
+    ui->oldPassword->setStyleSheet("border: 1px solid gray");
+    ui->newPassword->setStyleSheet("border: 1px solid gray");
+    QTextStream stream(mSocket);
+    stream << changePasswordString << separator << username << separator
+           << oldPassword << separator << newPassword;
+    mSocket->flush();
+  }
+  //  clearInputFieldsChangePasswordPage();
 }
 
 void MainWindow::on_backChangePasswordPage_clicked() {
   ui->stackedWidget->setCurrentWidget(ui->chatPage);
+  clearInputFieldsChangePasswordPage();
 }

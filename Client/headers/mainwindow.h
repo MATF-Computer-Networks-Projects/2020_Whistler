@@ -42,6 +42,12 @@ private slots:
 
   void on_backChangePasswordPage_clicked();
 
+  void clearInputFields();
+  void clearInputFieldsLoginPage();
+  void clearInputFieldsSignupPage();
+  void clearInputFieldsChatPage();
+  void clearInputFieldsChangePasswordPage();
+
 private:
   Ui::MainWindow *ui;
   QTcpSocket *mSocket;
@@ -60,7 +66,5 @@ private:
   QString changePasswordString = "0xa$112322";
   QString separator = "$$$";
   int serverPort = 12345;
-
-  void clearInputFields();
 };
 #endif // MAINWINDOW_H
