@@ -121,6 +121,9 @@ void MainWindow::clearInputFields() {
 
   ui->message->clear();
   ui->chat->clear();
+
+  ui->oldPassword->clear();
+  ui->newPassword->clear();
 }
 
 void MainWindow::on_signupButtonSignupPage_clicked() {
@@ -152,7 +155,7 @@ void MainWindow::on_signupButtonSignupPage_clicked() {
     qDebug() << "greska";
   } else {
     mSocket = new QTcpSocket(this);
-    mSocket->connectToHost("localhost", serverPort);
+    mSocket->connectToHost(serverHostname, serverPort);
     connect(mSocket, &QTcpSocket::readyRead, this,
             &MainWindow::accountCheckSignup);
     QTextStream stream(mSocket);
@@ -204,6 +207,8 @@ void MainWindow::accountCheckLogin() {
     mSocket->disconnectFromHost();
 
     // its message from other clients (chat message)
+  } else if (message.startsWith(changePasswordString)) {
+    changePasswordHandler(message);
   } else {
     chatHandler(message);
   }
@@ -221,10 +226,6 @@ void MainWindow::on_sendButton_clicked() {
     QTextStream stream(mSocket);
     stream << username << separator << message;
     mSocket->flush();
-    //    QString tmp = "[";
-    //    tmp.append(username);
-    //    tmp.append("]:");
-    //    tmp.append(message);
     ui->chat->setFontItalic(true);
     ui->chat->append(message);
     ui->chat->setFontItalic(false);
@@ -233,10 +234,49 @@ void MainWindow::on_sendButton_clicked() {
   ui->message->setFocus();
 }
 
+void MainWindow::changePasswordHandler(QString message) {
+  QTextStream stream(mSocket);
+  auto messageFromServer = stream.readAll();
+  QList<QString> messageData = message.split(separator);
+  QString messageText = messageData[1];
+  qDebug() << message << message << message;
+  if (messageText.startsWith("Successful change password")) {
+    //      ui->stackedWidget->setCurrentWidget(ui->chatPage);
+    ui->oldPassword->clear();
+    ui->oldPassword->setStyleSheet("border: 1px solid green");
+    ui->newPassword->clear();
+    ui->newPassword->setStyleSheet("border: 1px solid green");
+    qDebug() << "Successful change password";
+  } else {
+    ui->oldPassword->setStyleSheet("border: 1px solid red");
+  }
+}
+
 void MainWindow::on_logout_clicked() {
   QTextStream stream(mSocket);
   stream << logoutString << separator << username;
   mSocket->flush();
   clearInputFields();
   ui->stackedWidget->setCurrentWidget(ui->loginPage);
+}
+
+void MainWindow::on_changePassword_clicked() {
+  qDebug() << "change password klik";
+  ui->stackedWidget->setCurrentWidget(ui->changePasswordPage);
+}
+
+void MainWindow::on_confirmChangePassword_clicked() {
+  QString oldPassword = ui->oldPassword->text();
+  QString newPassword = ui->newPassword->text();
+  ui->oldPassword->setStyleSheet("border: 1px solid gray");
+  ui->newPassword->setStyleSheet("border: 1px solid gray");
+  QTextStream stream(mSocket);
+  stream << changePasswordString << separator << username << separator
+         << oldPassword << separator << newPassword;
+  mSocket->flush();
+  clearInputFields();
+}
+
+void MainWindow::on_backChangePasswordPage_clicked() {
+  ui->stackedWidget->setCurrentWidget(ui->chatPage);
 }

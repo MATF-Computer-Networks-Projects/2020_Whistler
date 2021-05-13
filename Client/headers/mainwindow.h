@@ -32,8 +32,15 @@ private slots:
   void on_sendButton_clicked();
 
   void chatHandler(QString message);
+  void changePasswordHandler(QString message);
 
   void on_logout_clicked();
+
+  void on_changePassword_clicked();
+
+  void on_confirmChangePassword_clicked();
+
+  void on_backChangePasswordPage_clicked();
 
 private:
   Ui::MainWindow *ui;
@@ -43,11 +50,14 @@ private:
   QString hostname;
   QString port;
 
+  QString serverHostname = "localhost";
+
   QString signupCheckString = "0xa$124432";
   QString loginCheckString = "0xa$124jk2";
   QString logoutString = "0xa$1212k2";
   QString onlineString = "0xa$121422";
   QString offlineString = "0xa$121322";
+  QString changePasswordString = "0xa$112322";
   QString separator = "$$$";
   int serverPort = 12345;
 

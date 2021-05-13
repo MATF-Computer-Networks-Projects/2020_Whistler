@@ -272,6 +272,7 @@ void Server::serveClient(Client *client) {
       query.at();
       numRows = query.at() + 1;
     }
+    qDebug() << numRows;
 
     // if there is no rows with that username then that is wrong username
     if (numRows == 0) {
@@ -280,78 +281,78 @@ void Server::serveClient(Client *client) {
 
     } else {
       query.next();
-      if (query.isValid()) {
-        qDebug() << query.isValid();
-        // there is instance in database with that username
-        int idDb = query.value(0).toInt();
-        QString usernameDb = query.value(1).toString();
-        QString passwordDb = query.value(2).toString();
-        qDebug() << idDb << usernameDb << passwordDb;
+      //      if (query.isValid()) {
+      qDebug() << query.isValid();
+      // there is instance in database with that username
+      int idDb = query.value(0).toInt();
+      QString usernameDb = query.value(1).toString();
+      QString passwordDb = query.value(2).toString();
+      qDebug() << idDb << usernameDb << passwordDb;
 
-        // checking if password is correct
-        QString unhashedPassword;
-        SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
-        unhashedPassword = crypto.decryptToString(passwordDb);
+      // checking if password is correct
+      QString unhashedPassword;
+      SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
+      unhashedPassword = crypto.decryptToString(passwordDb);
 
-        qDebug() << "unhashed password" << unhashedPassword;
+      qDebug() << "unhashed password" << unhashedPassword;
 
-        if (unhashedPassword == password) {
-          streamFrom << "Successful";
-          qDebug() << "Successful";
+      if (unhashedPassword == password) {
+        streamFrom << "Successful";
+        qDebug() << "Successful";
 
-          //          if (clients[client->socketDesc()] != NULL) {
-          //            clients[client->socketDesc()]->setUsername(username);
-          //            qDebug() << "postavljam username na " << username << "
-          //            sada je "
-          //                     <<
-          //                     clients[client->socketDesc()]->getUsername();
-          //          } else {
-          client->setUsername(username);
-          clients[client->socketDesc()] = client;
+        //          if (clients[client->socketDesc()] != NULL) {
+        //            clients[client->socketDesc()]->setUsername(username);
+        //            qDebug() << "postavljam username na " << username << "
+        //            sada je "
+        //                     <<
+        //                     clients[client->socketDesc()]->getUsername();
+        //          } else {
+        client->setUsername(username);
+        clients[client->socketDesc()] = client;
 
-          qDebug() << "provera nakon logina ime clienta je "
-                   << clients[client->socketDesc()]->getUsername();
-          //          }
+        qDebug() << "provera nakon logina ime clienta je "
+                 << clients[client->socketDesc()]->getUsername();
+        //          }
 
-          QMapIterator<int, Client *> iterator(clients);
-          while (iterator.hasNext()) {
-            iterator.next();
-            auto c = iterator.value();
-            if (c != client && c != NULL) {
-              QTextStream stream(c);
-              stream << onlineString << separator << client->getUsername()
-                     << " is online ";
-              c->flush();
-              qDebug() << "login poruka od " << client->getUsername();
-            }
+        QMapIterator<int, Client *> iterator(clients);
+        while (iterator.hasNext()) {
+          iterator.next();
+          auto c = iterator.value();
+          if (c != client && c != NULL) {
+            QTextStream stream(c);
+            stream << onlineString << separator << client->getUsername()
+                   << " is online ";
+            c->flush();
+            qDebug() << "login poruka od " << client->getUsername();
           }
-
-          //          for (const auto &c : allClients) {
-          //            if (c != client) {
-          //              QTextStream stream(c);
-          //              stream << username << " is online.";
-          //              c->flush();
-          //              qDebug() << "login poruka od " <<
-          //              client->getUsername();
-          //            }
-          //          }
-
-          //          if (clients[client->socketDesc()] == NULL) {
-          //            clients[client->socketDesc()]->setUsername(username);
-          //            qDebug() << "postavljam username na " << username << "
-          //            sada je "
-          //                     <<
-          //                     clients[client->socketDesc()]->getUsername();
-          //          } else {
-          //            clients[client->socketDesc()] = client;
-          //          }
-
-        } else {
-
-          streamFrom << "Unsuccessful wrong password";
-          qDebug() << "Unsuccessful wrong password";
         }
+
+        //          for (const auto &c : allClients) {
+        //            if (c != client) {
+        //              QTextStream stream(c);
+        //              stream << username << " is online.";
+        //              c->flush();
+        //              qDebug() << "login poruka od " <<
+        //              client->getUsername();
+        //            }
+        //          }
+
+        //          if (clients[client->socketDesc()] == NULL) {
+        //            clients[client->socketDesc()]->setUsername(username);
+        //            qDebug() << "postavljam username na " << username << "
+        //            sada je "
+        //                     <<
+        //                     clients[client->socketDesc()]->getUsername();
+        //          } else {
+        //            clients[client->socketDesc()] = client;
+        //          }
+
+      } else {
+
+        streamFrom << "Unsuccessful wrong password";
+        qDebug() << "Unsuccessful wrong password";
       }
+      //      }
 
       client->flush();
     }
@@ -386,6 +387,99 @@ void Server::serveClient(Client *client) {
     //        c->flush();
     //      }
     //    }
+
+    // if client changes password
+  } else if (message.startsWith(changePasswordString)) {
+
+    QList<QString> userInfo = message.split(separator);
+    QString username = userInfo[1];
+    QString oldPassword = userInfo[2];
+    QString newPassword = userInfo[3];
+    qDebug() << "password change username" << username;
+
+    QSqlQuery query(db);
+
+    query.prepare("SELECT * FROM Accounts where username=(:username)");
+
+    query.bindValue(":username", username);
+
+    query.exec();
+
+    query.next();
+
+    // there is instance in database with that username
+    qint64 idDb = query.value(0).toULongLong();
+    QString usernameDb = query.value(1).toString();
+    QString passwordDb = query.value(2).toString();
+    qDebug() << idDb << usernameDb << passwordDb;
+
+    // checking if password is correct
+    QString unhashedPassword;
+    SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
+    unhashedPassword = crypto.decryptToString(passwordDb);
+
+    qDebug() << "unhashed password" << unhashedPassword;
+
+    if (unhashedPassword == oldPassword) {
+
+      QString newPasswordHashed = crypto.encryptToString(newPassword);
+
+      qDebug() << "stari password " << oldPassword;
+      qDebug() << "novi password " << newPassword;
+
+      qDebug() << "stari password hash " << passwordDb;
+      qDebug() << "novi password hash " << newPasswordHashed;
+
+      query.prepare("UPDATE Accounts SET password=(:newPasswordHashed) where "
+                    "username=(:username)");
+
+      query.prepare(
+          "UPDATE Accounts SET password=(:newPasswordHashed) where id=(:idDb)");
+
+      qDebug() << idDb;
+
+      query.bindValue(":newPasswordHashed", newPasswordHashed);
+      query.bindValue(":idDb", idDb);
+      //      query.bindValue(":username", username);
+
+      query.exec();
+
+      streamFrom << changePasswordString << separator
+                 << "Successful change password";
+      qDebug() << "Successful change password";
+
+      qDebug() << "query " << query.lastQuery();
+      //      auto a = query.exec();
+      //      qDebug() << "exec update";
+      //      qDebug() << "rezultat exec " << a;
+      qDebug() << "error " << query.lastError();
+      qDebug() << "promenjeno redova " << query.numRowsAffected();
+
+      query.prepare("SELECT * FROM Accounts where username=(:username)");
+
+      query.bindValue(":username", username);
+
+      query.exec();
+
+      query.next();
+
+      // there is instance in database with that username
+      quint64 idDb = query.value(0).toULongLong();
+      QString usernameDb = query.value(1).toString();
+      QString passwordDb = query.value(2).toString();
+      qDebug() << idDb << usernameDb << passwordDb;
+
+      QString unhashedPassword;
+      SimpleCrypt crypto(Q_UINT64_C(0x0c2ad4a4acb9f023));
+      unhashedPassword = crypto.decryptToString(passwordDb);
+
+      qDebug() << "novi password " << unhashedPassword;
+
+    } else {
+      streamFrom << changePasswordString << separator
+                 << "Unsuccessful change password";
+      qDebug() << "Unsuccessful change password";
+    }
 
     // basic message
   } else {
