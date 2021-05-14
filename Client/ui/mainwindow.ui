@@ -537,6 +537,28 @@
            </item>
           </layout>
          </widget>
+         <widget class="QLabel" name="label_2">
+          <property name="geometry">
+           <rect>
+            <x>40</x>
+            <y>20</y>
+            <width>201</width>
+            <height>51</height>
+           </rect>
+          </property>
+          <property name="font">
+           <font>
+            <family>Calibri</family>
+            <pointsize>48</pointsize>
+           </font>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::NoFrame</enum>
+          </property>
+          <property name="text">
+           <string>label</string>
+          </property>
+         </widget>
         </widget>
        </item>
        <item>
@@ -594,6 +616,12 @@
           </property>
           <property name="text">
            <string>Send</string>
+          </property>
+          <property name="autoDefault">
+           <bool>false</bool>
+          </property>
+          <property name="default">
+           <bool>false</bool>
           </property>
          </widget>
          <widget class="QLineEdit" name="message">
