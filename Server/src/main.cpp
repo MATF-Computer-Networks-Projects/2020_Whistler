@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
   // starting server (if port is 0, port number is automatically chosen)
   if (!server.startServer(server.port)) {
     qDebug() << "Error:" << server.errorString();
-    return 1;
+    return -1;
   }
   // printing port number that server runs on
   qDebug() << server.serverPort();

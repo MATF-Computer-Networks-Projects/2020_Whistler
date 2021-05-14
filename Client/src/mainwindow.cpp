@@ -35,6 +35,10 @@ MainWindow::MainWindow(QWidget *parent)
   ui->newPassword->setValidator(
       new QRegExpValidator(QRegExp("[^$]{3,20}"), this));
 
+  // send message with enter
+  connect(ui->message, SIGNAL(returnPressed()), ui->sendButton,
+          SIGNAL(clicked()));
+
   // setting tab order so we can use tab
   this->setTabOrder(ui->hostname, ui->port);
   this->setTabOrder(ui->port, ui->username);

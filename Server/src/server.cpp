@@ -1,5 +1,3 @@
-#include "headers/server.h"
-
 #include <QDebug>
 #include <QSqlDatabase>
 #include <QTextStream>
@@ -7,6 +5,7 @@
 #include <iostream>
 
 #include "headers/client.h"
+#include "headers/server.h"
 #include "headers/simplecrypt.h"
 
 Server::Server(QObject *parent) : QTcpServer(parent) {}
@@ -85,7 +84,7 @@ void Server::incomingConnection(qintptr socketDesc) {
 
   qDebug() << "Connected client with socket descriptor:" << socketDesc;
 
-  auto socket = new Client(socketDesc, NULL, true, this);
+  auto socket = new Client(socketDesc, nullptr, true, this);
 
   clients[socket->socketDesc()] = socket;
 
@@ -104,7 +103,7 @@ void Server::clientDisconnected(Client *client, int state) {
              << client->socketDesc();
 
     // setting client in map that server has to null
-    clients[client->socketDesc()] = NULL;
+    clients[client->socketDesc()] = nullptr;
 
     // if client that disconnected had showOnlineStatus=true then we send all
     // other clients he is disconnected
@@ -113,7 +112,7 @@ void Server::clientDisconnected(Client *client, int state) {
       while (iterator.hasNext()) {
         iterator.next();
         auto c = iterator.value();
-        if (c != client && c != NULL) {
+        if (c != client && c != nullptr) {
           QTextStream stream(c);
           stream << offlineString << separator << client->getUsername();
           c->flush();
@@ -243,7 +242,7 @@ void Server::serveClient(Client *client) {
     while (iterator.hasNext()) {
       iterator.next();
       auto c = iterator.value();
-      if (c != client && c != NULL) {
+      if (c != client && c != nullptr) {
         if (c->getUsername() == username) {
           alreadyLoggedIn = true;
           break;
@@ -315,7 +314,7 @@ void Server::serveClient(Client *client) {
             //            client->flush();
             qDebug() << "Successful passwords match";
 
-            //          if (clients[client->socketDesc()] != NULL) {
+            //          if (clients[client->socketDesc()] != nullptr) {
             //            clients[client->socketDesc()]->setUsername(username);
             //            qDebug() << "postavljam username na " << username <<
             //            " sada je "
@@ -337,7 +336,7 @@ void Server::serveClient(Client *client) {
             while (iterator.hasNext()) {
               iterator.next();
               auto c = iterator.value();
-              if (c != client && c != NULL && c->getShowOnlineStatus()) {
+              if (c != client && c != nullptr && c->getShowOnlineStatus()) {
                 onlineUsers.append(separator);
                 onlineUsers.append(c->getUsername());
               }
@@ -362,7 +361,7 @@ void Server::serveClient(Client *client) {
               while (iterator.hasNext()) {
                 iterator.next();
                 auto c = iterator.value();
-                if (c != client && c != NULL) {
+                if (c != client && c != nullptr) {
                   QTextStream stream(c);
                   stream << onlineString << separator << client->getUsername();
                   c->flush();
@@ -384,7 +383,7 @@ void Server::serveClient(Client *client) {
     } else {
       streamFrom << "Unsuccessful already logged in";
       client->flush();
-      clients[client->socketDesc()] = NULL;
+      clients[client->socketDesc()] = nullptr;
     }
     // if client logouts
   } else if (message.startsWith(logoutString)) {
@@ -398,7 +397,7 @@ void Server::serveClient(Client *client) {
       while (iterator.hasNext()) {
         iterator.next();
         auto c = iterator.value();
-        if (c != client && c != NULL) {
+        if (c != client && c != nullptr) {
           QTextStream stream(c);
           stream << offlineString << separator << username;
           c->flush();
@@ -407,7 +406,7 @@ void Server::serveClient(Client *client) {
     }
 
     // setting client in map that server has to null
-    clients[client->socketDesc()] = NULL;
+    clients[client->socketDesc()] = nullptr;
 
     // if client changes password
   } else if (message.startsWith(changePasswordString)) {
@@ -492,7 +491,7 @@ void Server::serveClient(Client *client) {
     while (iterator.hasNext()) {
       iterator.next();
       auto c = iterator.value();
-      if (c != client && c != NULL) {
+      if (c != client && c != nullptr) {
         QTextStream stream(c);
         stream << usernameAndTimestamp << " sent: " << messageText;
         c->flush();

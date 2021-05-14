@@ -71,7 +71,6 @@ private:
   QString changePasswordString = "0xa$112322";
   QString allOnlineString = "0xa$111432";
   QString successfulLoginString = "0xa$234232";
-  //  QString allOnlineString = successfulLoginString;
   QString separator = "$$$";
   int serverPort = 12345;
 };
