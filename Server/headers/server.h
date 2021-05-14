@@ -18,9 +18,6 @@ public:
   int port = 12345;
 
 private:
-  QList<Client *> allClients;
-  QList<Client *> loggedIn;
-
   QMap<int, Client *> clients;
 
   QString dbHostname;
@@ -38,7 +35,6 @@ private:
   QString changePasswordString = "0xa$112322";
   QString allOnlineString = "0xa$111432";
   QString successfulLoginString = "0xa$234232";
-  //  QString allOnlineString = successfulLoginString;
   QString separator = "$$$";
 
   quint64 hashingValue = Q_UINT64_C(0x0c2ad4a4acb9f023);
