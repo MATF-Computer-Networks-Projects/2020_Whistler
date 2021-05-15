@@ -1,6 +1,10 @@
 #include "headers/mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QRegexpValidator>
+#include <QComboBox>
+#include <QFontDatabase>
+#include <QGraphicsScene>
+#include <QMovie>
+#include <QRegExpValidator>
 #include <QTime>
 #include <iostream>
 
@@ -10,10 +14,10 @@ MainWindow::MainWindow(QWidget *parent)
 
   ui->stackedWidget->setCurrentWidget(ui->loginPage);
 
-  ui->hostname->setText("localhost");
-  ui->port->setText("12345");
-  ui->username->setText("user");
-  ui->password->setText("123");
+  //  ui->hostname->setText("localhost");
+  //  ui->port->setText("12345");
+  //  ui->username->setText("user");
+  //  ui->password->setText("123");
 
   // only numbers can be entered in port field
   ui->port->setValidator(new QRegExpValidator(QRegExp("[0-9]*"), this));
@@ -38,6 +42,32 @@ MainWindow::MainWindow(QWidget *parent)
   // send message with enter
   connect(ui->message, SIGNAL(returnPressed()), ui->sendButton,
           SIGNAL(clicked()));
+
+  // login using enter
+  connect(ui->hostname, SIGNAL(returnPressed()), ui->loginButton,
+          SIGNAL(clicked()));
+  connect(ui->port, SIGNAL(returnPressed()), ui->loginButton,
+          SIGNAL(clicked()));
+  connect(ui->username, SIGNAL(returnPressed()), ui->loginButton,
+          SIGNAL(clicked()));
+  connect(ui->password, SIGNAL(returnPressed()), ui->loginButton,
+          SIGNAL(clicked()));
+
+  // signup using enter
+  connect(ui->usernameSignupPage, SIGNAL(returnPressed()),
+          ui->signupButtonSignupPage, SIGNAL(clicked()));
+  connect(ui->passwordSignupPage, SIGNAL(returnPressed()),
+          ui->signupButtonSignupPage, SIGNAL(clicked()));
+
+  // change password using enter
+  connect(ui->oldPassword, SIGNAL(returnPressed()), ui->confirmChangePassword,
+          SIGNAL(clicked()));
+  connect(ui->newPassword, SIGNAL(returnPressed()), ui->confirmChangePassword,
+          SIGNAL(clicked()));
+
+  movieError = new QMovie("../Client/assets/pictureError.gif");
+
+  themeModern();
 
   // setting tab order so we can use tab
   this->setTabOrder(ui->hostname, ui->port);
@@ -67,6 +97,8 @@ void MainWindow::on_loginButton_clicked() {
   if (username.isEmpty() || username.length() < 3) {
     ui->username->setStyleSheet("border: 1px solid red");
 
+    errorHandleLogin();
+
     // else needed because if username and password get red, if we fix one then
     // if we try to login one should stay red and other doesnt
   } else {
@@ -75,18 +107,24 @@ void MainWindow::on_loginButton_clicked() {
 
   if (password.isEmpty() || password.length() < 3) {
     ui->password->setStyleSheet("border: 1px solid red");
+
+    errorHandleLogin();
   } else {
     ui->password->setStyleSheet("border: 1px solid gray");
   }
 
   if (hostname.isEmpty()) {
     ui->hostname->setStyleSheet("border: 1px solid red");
+
+    errorHandleLogin();
   } else {
     ui->hostname->setStyleSheet("border: 1px solid gray");
   }
 
   if (port.isEmpty()) {
     ui->port->setStyleSheet("border: 1px solid red");
+
+    errorHandleLogin();
   } else {
     ui->port->setStyleSheet("border: 1px solid gray");
   }
@@ -206,6 +244,9 @@ void MainWindow::clearInputFieldsLoginPage() {
   ui->password->setStyleSheet("border: 1px solid gray");
   ui->hostname->setStyleSheet("border: 1px solid gray");
   ui->port->setStyleSheet("border: 1px solid gray");
+
+  //  movieError->stop();
+  ui->labelLogin->setMovie(nullptr);
 }
 
 void MainWindow::clearInputFieldsSignupPage() {
@@ -216,6 +257,10 @@ void MainWindow::clearInputFieldsSignupPage() {
 
   ui->usernameSignupPage->setStyleSheet("border: 1px solid gray");
   ui->passwordSignupPage->setStyleSheet("border: 1px solid gray");
+
+  ui->usernameSignupPage->setPlaceholderText("");
+
+  ui->labelSignup->setMovie(nullptr);
 }
 
 void MainWindow::clearInputFieldsChatPage() {
@@ -232,6 +277,8 @@ void MainWindow::clearInputFieldsChangePasswordPage() {
 
   ui->oldPassword->setStyleSheet("border: 1px solid gray");
   ui->newPassword->setStyleSheet("border: 1px solid gray");
+
+  ui->labelChangePassword->setMovie(nullptr);
 }
 
 void MainWindow::on_signupButtonSignupPage_clicked() {
@@ -260,7 +307,10 @@ void MainWindow::on_signupButtonSignupPage_clicked() {
   }
 
   if (flagUsernameSignupPage || flagPasswordSignupPage) {
-    qDebug() << "greska";
+
+    errorHandleSignup();
+
+    qDebug() << "error signup";
   } else {
     mSocket = new QTcpSocket(this);
 
@@ -287,8 +337,12 @@ void MainWindow::accountCheckSignup() {
     qDebug() << "Successful signup";
   } else {
 
+    clearInputFieldsSignupPage();
     ui->usernameSignupPage->setStyleSheet("border: 1px solid red");
     ui->usernameSignupPage->setPlaceholderText("Username taken");
+
+    errorHandleSignup();
+
     qDebug() << "Unsuccessful signup";
   }
   mSocket->disconnectFromHost();
@@ -304,6 +358,19 @@ void MainWindow::accountCheckLogin() {
   if (message.startsWith(successfulLoginString)) {
     ui->stackedWidget->setCurrentWidget(ui->chatPage);
 
+    clearInputFieldsLoginPage();
+
+    qDebug() << "after login logoutClicked " << logoutClicked;
+
+    // setting logoutClicked to false because if client logged out and then
+    // logged back in logoutClicked will be true (because we set it to true when
+    // he logged out). Since we dont delete this if client logs back in
+    // logoutClicked will be true
+    logoutClicked = false;
+
+    connect(mSocket, &QTcpSocket::disconnected, this,
+            &MainWindow::afterDisconnect);
+
     // if its successful login see if there are users online to write in online
     // field
     chatPageHandler(message);
@@ -317,9 +384,13 @@ void MainWindow::accountCheckLogin() {
 
     qDebug() << "Unsuccessful user doesnt exist";
 
+    errorHandleLogin();
+
   } else if (message.startsWith("Unsuccessful wrong password")) {
     ui->password->setStyleSheet("border: 1px solid red");
     qDebug() << "Unsuccessful wrong password";
+
+    errorHandleLogin();
 
     mSocket->disconnectFromHost();
 
@@ -327,6 +398,15 @@ void MainWindow::accountCheckLogin() {
 
     ui->username->setStyleSheet("background-color: red");
     ui->password->setStyleSheet("background-color: red");
+
+    errorHandleLogin();
+  } else if (message.startsWith(
+                 "Unsuccessful db error (probably not connected")) {
+
+    ui->username->setStyleSheet("background-color: yellow");
+    ui->password->setStyleSheet("background-color: yellow");
+
+    //    errorHandleLogin();
 
   } else if (message.startsWith(changePasswordString)) {
     changePasswordHandler(message);
@@ -342,6 +422,38 @@ void MainWindow::accountCheckLogin() {
   }
 
   //  mSocket->abort();
+}
+
+// if server is down (also doing this function after logout)
+void MainWindow::afterDisconnect() {
+
+  qDebug() << "logout clicked " << logoutClicked;
+  // only if really is server down (not if we logout)
+  if (!logoutClicked) {
+    QString timestamp = QDateTime::currentDateTime().toString().split(" ")[3];
+    qDebug() << "server down" << timestamp;
+
+    ui->logout->click();
+    ui->username->setStyleSheet("background-color: orange");
+    ui->password->setStyleSheet("background-color: orange");
+  }
+
+  mSocket->deleteLater();
+}
+
+void MainWindow::errorHandleLogin() {
+  ui->labelLogin->setMovie(movieError);
+  movieError->start();
+}
+
+void MainWindow::errorHandleSignup() {
+  ui->labelSignup->setMovie(movieError);
+  movieError->start();
+}
+
+void MainWindow::errorHandleChangePassword() {
+  ui->labelChangePassword->setMovie(movieError);
+  movieError->start();
 }
 
 void MainWindow::on_sendButton_clicked() {
@@ -387,6 +499,9 @@ void MainWindow::changePasswordHandler(QString message) {
     qDebug() << "Successful change password";
 
   } else {
+
+    errorHandleChangePassword();
+
     ui->oldPassword->setStyleSheet("border: 1px solid red");
   }
 }
@@ -398,12 +513,16 @@ void MainWindow::on_logout_clicked() {
 
   mSocket->flush();
 
-  //  clearInputFields();
+  // set logoutClicked to true because we use this to know whether disconnect
+  // signal came from logout click or not
+  logoutClicked = true;
+
   clearInputFieldsChatPage();
 
   ui->stackedWidget->setCurrentWidget(ui->loginPage);
 
   onlineUsersWithShownOnlineStatus.clear();
+
   mSocket->disconnectFromHost();
 }
 
@@ -420,8 +539,12 @@ void MainWindow::on_confirmChangePassword_clicked() {
   if (oldPassword.isEmpty() || oldPassword.length() < 3) {
     ui->oldPassword->setStyleSheet("border: 1px solid red");
 
+    errorHandleChangePassword();
+
   } else if (newPassword.isEmpty() || newPassword.length() < 3) {
     ui->newPassword->setStyleSheet("border: 1px solid red");
+
+    errorHandleChangePassword();
 
     // if new password is same as old we just set color like its changed
   } else if (oldPassword == newPassword) {
@@ -445,4 +568,109 @@ void MainWindow::on_confirmChangePassword_clicked() {
 void MainWindow::on_backChangePasswordPage_clicked() {
   ui->stackedWidget->setCurrentWidget(ui->chatPage);
   clearInputFieldsChangePasswordPage();
+}
+
+// void MainWindow::on_pushButton_clicked() {
+//  ui->centralwidget->setStyleSheet("background-color:blue");
+//}
+
+// void MainWindow::on_pushButton_2_clicked() {
+//  ui->centralwidget->setStyleSheet("background-color:blue");
+//  if (ui->pushButton_2->text() == "PushButton") {
+//    ui->pushButton_2->setText("change again");
+//  } else {
+
+//    ui->centralwidget->setStyleSheet("background-color:black");
+//    ui->pushButton_2->setText("PushButton");
+//  }
+//}
+
+void MainWindow::on_tabWidget_currentChanged(int index) {
+  if (index == 0) {
+    themeModern();
+
+  } else if (index == 1) {
+    themeLight();
+
+  } else if (index == 2) {
+    themeDark();
+
+  } else {
+    theme90s();
+  }
+}
+
+void MainWindow::themeModern() {
+  this->setStyleSheet(
+      "background-color:rgb(134,134,134); font: 10pt \"Calibri\";");
+
+  ui->centralwidget->setStyleSheet(
+      "QLineEdit{background:white;}QPushButton{"
+      "background:rgb(201,201,201);}QTextEdit{background-color:white;}"
+      "QTabBar::tab{background-color:rgb(230,230,230);padding:1px 11px; "
+      "font: 10pt "
+      "\"Calibri\"; "
+      "border:1px solid black "
+      "}QTabBar::tab:selected{background-color:rgb(201,201,201);}QTabBar::"
+      "tab:!"
+      "selected {margin-top: 2px;}");
+  //    ui->tabWidget->themeModern->setBackgroundColor;
+  //    ui->
+  ui->headerLabelWhistler->setStyleSheet("font: 48pt \"Calibri\";");
+}
+
+void MainWindow::themeLight() {
+  this->setStyleSheet(
+      "background-color:rgb(234,234,234); font: 10pt \"Calibri\";");
+
+  ui->centralwidget->setStyleSheet(
+      "QLineEdit{background:white;}QPushButton{"
+      "background:rgb(230,230,230);}QTextEdit{background-color:white;}"
+      "QTabBar::tab{background-color:rgb(201,201,201);padding:1px 11px; "
+      "font: 10pt "
+      "\"Calibri\"; "
+      "border:1px solid black "
+      "}QTabBar::tab:selected{background-color:rgb(230,230,230);}QTabBar::"
+      "tab:!"
+      "selected {margin-top: 2px;}");
+  ui->headerLabelWhistler->setStyleSheet("font: 48pt \"Calibri\";");
+}
+
+void MainWindow::themeDark() {
+  this->setStyleSheet(
+      "background-color:rgb(50,50,50); font: 10pt \"Calibri\";");
+
+  ui->centralwidget->setStyleSheet(
+      "QLineEdit{background:black; color:white}QPushButton{"
+      "background:rgb(80,80,80);}QTextEdit{background-color:black;color:"
+      "white}"
+      "QTabBar::tab{background-color:black; "
+      "color:rgb(230,230,230);padding:1px 11px; "
+      "font: 10pt "
+      "\"Calibri\"; "
+      "border:1px solid black "
+      "}QTabBar::tab:selected{background-color:rgb(80,80,80);}QTabBar::"
+      "tab:!"
+      "selected {margin-top: 2px;}");
+  ui->headerLabelWhistler->setStyleSheet("font: 48pt \"Calibri\";");
+}
+
+void MainWindow::theme90s() {
+  this->setStyleSheet("background-color:rgb(188,157,64); font: 10pt "
+                      "\"Calibri\"; color:rgb(0,0,203)");
+
+  ui->centralwidget->setStyleSheet(
+      "QLineEdit{background:rgb(0,0,203); color:rgb(188,157,64)}QPushButton{"
+      "background:rgb(0,0,203);color:rgb(188,157,64)}QTextEdit{background-"
+      "color:rgb(0,0,203);color:"
+      "rgb(188,157,64)}"
+      "QTabBar::tab{background-color:rgb(0,0,203); "
+      "color:rgb(0,0,203);padding:1px 11px; "
+      "font: 10pt "
+      "\"Calibri\"; "
+      "border:1px solid black "
+      "}QTabBar::tab:selected{background-color:rgb(188,157,64);}QTabBar::"
+      "tab:!"
+      "selected {margin-top: 2px; color:rgb(188,157,64)}");
+  ui->headerLabelWhistler->setStyleSheet("font: 48pt \"Calibri\";");
 }

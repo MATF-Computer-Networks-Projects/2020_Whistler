@@ -51,6 +51,23 @@ private slots:
 
   void afterConnect();
 
+  void errorHandleLogin();
+  void errorHandleSignup();
+  void errorHandleChangePassword();
+
+  //  void on_pushButton_clicked();
+
+  //  void on_pushButton_2_clicked();
+
+  void on_tabWidget_currentChanged(int index);
+
+  void themeModern();
+  void themeLight();
+  void themeDark();
+  void theme90s();
+
+  void afterDisconnect();
+
 private:
   Ui::MainWindow *ui;
   QTcpSocket *mSocket;
@@ -58,6 +75,10 @@ private:
   QString password;
   QString hostname;
   QString port;
+
+  QMovie *movieError;
+
+  bool logoutClicked = false;
 
   QList<QString> onlineUsersWithShownOnlineStatus;
 
