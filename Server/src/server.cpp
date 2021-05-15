@@ -9,7 +9,17 @@
 #include "headers/simplecrypt.h"
 
 Server::Server(QObject *parent) : QTcpServer(parent) {}
-Server::~Server() { db.close(); }
+Server::~Server() {
+  db.close();
+  //  QMapIterator<int, Client *> iterator(clients);
+  //  while (iterator.hasNext()) {
+  //    iterator.next();
+  //    auto c = iterator.value();
+  //    if (c != nullptr) {
+  //      delete c;
+  //    }
+  //  }
+}
 
 bool Server::startServer(quint16 port) {
 

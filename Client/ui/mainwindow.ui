@@ -466,10 +466,10 @@ background:white;
          <widget class="QLabel" name="labelSignup">
           <property name="geometry">
            <rect>
-            <x>60</x>
-            <y>50</y>
-            <width>541</width>
-            <height>350</height>
+            <x>100</x>
+            <y>30</y>
+            <width>501</width>
+            <height>441</height>
            </rect>
           </property>
           <property name="text">
@@ -808,9 +808,9 @@ background:white;
          <widget class="QLabel" name="labelChangePassword">
           <property name="geometry">
            <rect>
-            <x>60</x>
-            <y>0</y>
-            <width>541</width>
+            <x>100</x>
+            <y>30</y>
+            <width>501</width>
             <height>441</height>
            </rect>
           </property>

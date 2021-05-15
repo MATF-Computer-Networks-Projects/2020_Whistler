@@ -55,9 +55,9 @@ private slots:
   void errorHandleSignup();
   void errorHandleChangePassword();
 
-  //  void on_pushButton_clicked();
-
-  //  void on_pushButton_2_clicked();
+  void errorHandleLoginClear();
+  void errorHandleSignupClear();
+  void errorHandleChangePasswordClear();
 
   void on_tabWidget_currentChanged(int index);
 
@@ -65,6 +65,8 @@ private slots:
   void themeLight();
   void themeDark();
   void theme90s();
+
+  void closeEvent(QCloseEvent *) override;
 
   void afterDisconnect();
 

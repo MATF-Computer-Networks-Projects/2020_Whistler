@@ -14,10 +14,10 @@ MainWindow::MainWindow(QWidget *parent)
 
   ui->stackedWidget->setCurrentWidget(ui->loginPage);
 
-  //  ui->hostname->setText("localhost");
-  //  ui->port->setText("12345");
-  //  ui->username->setText("user");
-  //  ui->password->setText("123");
+  ui->hostname->setText("localhost");
+  ui->port->setText("12345");
+  ui->username->setText("user");
+  ui->password->setText("123");
 
   // only numbers can be entered in port field
   ui->port->setValidator(new QRegExpValidator(QRegExp("[0-9]*"), this));
@@ -78,7 +78,11 @@ MainWindow::MainWindow(QWidget *parent)
   this->setTabOrder(ui->usernameSignupPage, ui->passwordSignupPage);
 }
 
-MainWindow::~MainWindow() { delete ui; }
+MainWindow::~MainWindow() {
+  delete ui;
+  //  delete mSocket;
+  //  delete movieError;
+}
 
 void MainWindow::on_signupButton_clicked() {
 
@@ -89,13 +93,22 @@ void MainWindow::on_signupButton_clicked() {
 void MainWindow::on_loginButton_clicked() {
   qDebug() << "login button";
 
+  errorHandleLoginClear();
+
   username = ui->username->text();
   password = ui->password->text();
   hostname = ui->hostname->text();
   port = ui->port->text();
 
+  bool loginUsernameCorrect = true;
+  bool loginPasswordCorrect = true;
+  bool loginHostnameCorrect = true;
+  bool loginPortCorrect = true;
+
   if (username.isEmpty() || username.length() < 3) {
     ui->username->setStyleSheet("border: 1px solid red");
+
+    loginUsernameCorrect = false;
 
     errorHandleLogin();
 
@@ -108,6 +121,8 @@ void MainWindow::on_loginButton_clicked() {
   if (password.isEmpty() || password.length() < 3) {
     ui->password->setStyleSheet("border: 1px solid red");
 
+    loginPasswordCorrect = false;
+
     errorHandleLogin();
   } else {
     ui->password->setStyleSheet("border: 1px solid gray");
@@ -115,6 +130,8 @@ void MainWindow::on_loginButton_clicked() {
 
   if (hostname.isEmpty()) {
     ui->hostname->setStyleSheet("border: 1px solid red");
+
+    loginHostnameCorrect = false;
 
     errorHandleLogin();
   } else {
@@ -124,17 +141,22 @@ void MainWindow::on_loginButton_clicked() {
   if (port.isEmpty()) {
     ui->port->setStyleSheet("border: 1px solid red");
 
+    loginPortCorrect = false;
+
     errorHandleLogin();
   } else {
     ui->port->setStyleSheet("border: 1px solid gray");
   }
 
-  mSocket = new QTcpSocket(this);
-  mSocket->connectToHost(hostname, port.toInt());
+  if (loginUsernameCorrect && loginPasswordCorrect && loginHostnameCorrect &&
+      loginPortCorrect) {
+    mSocket = new QTcpSocket(this);
+    mSocket->connectToHost(hostname, port.toInt());
 
-  connect(mSocket, &QTcpSocket::readyRead, this,
-          &MainWindow::accountCheckLogin);
-  connect(mSocket, &QTcpSocket::connected, this, &MainWindow::afterConnect);
+    connect(mSocket, &QTcpSocket::readyRead, this,
+            &MainWindow::accountCheckLogin);
+    connect(mSocket, &QTcpSocket::connected, this, &MainWindow::afterConnect);
+  }
 }
 
 void MainWindow::afterConnect() {
@@ -150,8 +172,6 @@ void MainWindow::afterConnect() {
 void MainWindow::chatHandler(QString message) { ui->chat->append(message); }
 
 void MainWindow::chatPageHandler(QString message) {
-
-  //  promeniti separator kod servera ?
 
   // when we log in we get all online users
   if (message.startsWith(successfulLoginString + separator + allOnlineString)) {
@@ -183,9 +203,13 @@ void MainWindow::chatPageHandler(QString message) {
     QList<QString> messageData = message.split(separator);
     QString username = messageData[1];
 
+    //    qDebug() << "pre ispisa online" << ui->chat->fontWeight();
     ui->chat->setFontWeight(75);
     ui->chat->append(username + " is online.");
+    //    qDebug() << "posle ispisa 1 online" << ui->chat->fontWeight();
     ui->chat->setFontWeight(50);
+
+    //    qDebug() << "posle ispisa 2 online" << ui->chat->fontWeight();
 
     // adding new online user to list of online users
     onlineUsersWithShownOnlineStatus.append(username);
@@ -199,9 +223,13 @@ void MainWindow::chatPageHandler(QString message) {
 
     if (!username.isEmpty()) {
 
+      //      qDebug() << "pre ispisa offline" << ui->chat->fontWeight();
       ui->chat->setFontWeight(75);
       ui->chat->append(username + " is offline.");
+      //      qDebug() << "posle ispisa 1 offline" << ui->chat->fontWeight();
       ui->chat->setFontWeight(50);
+
+      //      qDebug() << "posle ispisa 2 offline" << ui->chat->fontWeight();
 
       onlineUsersWithShownOnlineStatus.removeOne(username);
       ui->onlineUsers->clear();
@@ -246,7 +274,9 @@ void MainWindow::clearInputFieldsLoginPage() {
   ui->port->setStyleSheet("border: 1px solid gray");
 
   //  movieError->stop();
-  ui->labelLogin->setMovie(nullptr);
+  //  ui->labelLogin->setMovie(nullptr);
+
+  errorHandleLoginClear();
 }
 
 void MainWindow::clearInputFieldsSignupPage() {
@@ -260,7 +290,9 @@ void MainWindow::clearInputFieldsSignupPage() {
 
   ui->usernameSignupPage->setPlaceholderText("");
 
-  ui->labelSignup->setMovie(nullptr);
+  //  ui->labelSignup->setMovie(nullptr);
+
+  errorHandleSignupClear();
 }
 
 void MainWindow::clearInputFieldsChatPage() {
@@ -278,10 +310,14 @@ void MainWindow::clearInputFieldsChangePasswordPage() {
   ui->oldPassword->setStyleSheet("border: 1px solid gray");
   ui->newPassword->setStyleSheet("border: 1px solid gray");
 
-  ui->labelChangePassword->setMovie(nullptr);
+  //  ui->labelChangePassword->setMovie(nullptr);
+
+  errorHandleChangePasswordClear();
 }
 
 void MainWindow::on_signupButtonSignupPage_clicked() {
+
+  errorHandleSignupClear();
 
   bool flagUsernameSignupPage;
   bool flagPasswordSignupPage;
@@ -424,6 +460,26 @@ void MainWindow::accountCheckLogin() {
   //  mSocket->abort();
 }
 
+void MainWindow::closeEvent(QCloseEvent *event) {
+
+  qDebug() << "logout " << logoutClicked;
+  qDebug() << "ui login " << (ui->loginPage->isVisible());
+  qDebug() << "ui signup " << (ui->signupPage->isVisible());
+  qDebug() << "ui chat page " << (ui->chatPage->isVisible());
+  qDebug() << "ui change password page "
+           << (ui->changePasswordPage->isVisible());
+
+  // if we exit the app while we are on login screen or signup screen we dont
+  // need to logout/disconnect from host (because we already did that)
+  if (ui->chatPage->isVisible() || ui->changePasswordPage->isVisible()) {
+    on_logout_clicked();
+  } else {
+    QApplication::quit();
+  }
+
+  //    event->ignore();
+}
+
 // if server is down (also doing this function after logout)
 void MainWindow::afterDisconnect() {
 
@@ -454,6 +510,14 @@ void MainWindow::errorHandleSignup() {
 void MainWindow::errorHandleChangePassword() {
   ui->labelChangePassword->setMovie(movieError);
   movieError->start();
+}
+
+void MainWindow::errorHandleLoginClear() { ui->labelLogin->setMovie(nullptr); }
+void MainWindow::errorHandleSignupClear() {
+  ui->labelSignup->setMovie(nullptr);
+}
+void MainWindow::errorHandleChangePasswordClear() {
+  ui->labelChangePassword->setMovie(nullptr);
 }
 
 void MainWindow::on_sendButton_clicked() {
@@ -533,6 +597,8 @@ void MainWindow::on_changePassword_clicked() {
 
 void MainWindow::on_confirmChangePassword_clicked() {
 
+  errorHandleChangePasswordClear();
+
   QString oldPassword = ui->oldPassword->text();
   QString newPassword = ui->newPassword->text();
 
@@ -569,21 +635,6 @@ void MainWindow::on_backChangePasswordPage_clicked() {
   ui->stackedWidget->setCurrentWidget(ui->chatPage);
   clearInputFieldsChangePasswordPage();
 }
-
-// void MainWindow::on_pushButton_clicked() {
-//  ui->centralwidget->setStyleSheet("background-color:blue");
-//}
-
-// void MainWindow::on_pushButton_2_clicked() {
-//  ui->centralwidget->setStyleSheet("background-color:blue");
-//  if (ui->pushButton_2->text() == "PushButton") {
-//    ui->pushButton_2->setText("change again");
-//  } else {
-
-//    ui->centralwidget->setStyleSheet("background-color:black");
-//    ui->pushButton_2->setText("PushButton");
-//  }
-//}
 
 void MainWindow::on_tabWidget_currentChanged(int index) {
   if (index == 0) {
