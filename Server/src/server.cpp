@@ -47,17 +47,6 @@ bool Server::startServer(quint16 port) {
   db.setDatabaseName(dbDatabaseName);
   db.setPort(dbPort.toInt());
 
-  //  db = QSqlDatabase::addDatabase("QMYSQL");
-
-  //  //   doesnt work (known issue)
-  //  db.setConnectOptions("MYSQL_OPT_RECONNECT=1");
-
-  //  db.setHostName("b94tnhh8w1kwl9kczzst-mysql.services.clever-cloud.com");
-  //  db.setUserName("uiesn64ti0hf90xg");
-  //  db.setPassword("lY957lzqrPJVapv0sME9");
-  //  db.setDatabaseName("b94tnhh8w1kwl9kczzst");
-  //  db.setPort(3306);
-
   if (db.open()) {
 
     qDebug() << "db connected";
@@ -121,6 +110,7 @@ void Server::clientDisconnected(Client *client, int state) {
       }
       qDebug() << "disconnected client " << client->getUsername();
     }
+    client->deleteLater();
   }
 }
 
@@ -281,7 +271,12 @@ void Server::serveClient(Client *client) {
       // error (usually db connection)
       if (numRows == -1) {
 
-        qDebug() << "db error numRows==-1";
+        streamFrom << "Unsuccessful db error (probably not connected)";
+        client->flush();
+        qDebug() << "db error (probably not connected it disconnects after "
+                    "some time) numRows==-1";
+        qDebug() << "db open " << db.isOpen();
+        qDebug() << "db valid " << db.isValid();
 
         // if there is no rows with that username then that is wrong username
       } else if (numRows == 0) {
@@ -313,17 +308,6 @@ void Server::serveClient(Client *client) {
             //            streamFrom << successfulLoginString;
             //            client->flush();
             qDebug() << "Successful passwords match";
-
-            //          if (clients[client->socketDesc()] != nullptr) {
-            //            clients[client->socketDesc()]->setUsername(username);
-            //            qDebug() << "postavljam username na " << username <<
-            //            " sada je "
-            //                     <<
-            //                     clients[client->socketDesc()]->getUsername();
-            //          } else {
-
-            //          client->setUsername(username);
-            //          clients[client->socketDesc()] = client;
 
             // updating client with username and showOnlineStatus
             clients[client->socketDesc()]->setUsername(username);
@@ -407,6 +391,7 @@ void Server::serveClient(Client *client) {
 
     // setting client in map that server has to null
     clients[client->socketDesc()] = nullptr;
+    client->deleteLater();
 
     // if client changes password
   } else if (message.startsWith(changePasswordString)) {
