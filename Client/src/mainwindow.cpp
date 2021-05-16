@@ -14,10 +14,10 @@ MainWindow::MainWindow(QWidget *parent)
 
   ui->stackedWidget->setCurrentWidget(ui->loginPage);
 
-  ui->hostname->setText("localhost");
-  ui->port->setText("12345");
-  ui->username->setText("user");
-  ui->password->setText("123");
+  //  ui->hostname->setText("localhost");
+  //  ui->port->setText("12345");
+  //  ui->username->setText("user");
+  //  ui->password->setText("123");
 
   // only numbers can be entered in port field
   ui->port->setValidator(new QRegExpValidator(QRegExp("[0-9]*"), this));
@@ -65,7 +65,7 @@ MainWindow::MainWindow(QWidget *parent)
   connect(ui->newPassword, SIGNAL(returnPressed()), ui->confirmChangePassword,
           SIGNAL(clicked()));
 
-  movieError = new QMovie("../Client/assets/pictureError.gif");
+  movieError = new QMovie(":images/assets/pictureError.gif");
 
   themeModern();
 
@@ -370,6 +370,7 @@ void MainWindow::accountCheckSignup() {
 
   if (accountCheckResponse.startsWith("Successful")) {
     ui->stackedWidget->setCurrentWidget(ui->loginPage);
+    clearInputFieldsSignupPage();
     qDebug() << "Successful signup";
   } else {
 
@@ -557,8 +558,9 @@ void MainWindow::changePasswordHandler(QString message) {
 
     clearInputFieldsChangePasswordPage();
 
-    ui->oldPassword->setStyleSheet("border: 1px solid green");
-    ui->newPassword->setStyleSheet("border: 1px solid green");
+    //    ui->oldPassword->setStyleSheet("border: 1px solid green");
+    //    ui->newPassword->setStyleSheet("border: 1px solid green");
+    ui->stackedWidget->setCurrentWidget(ui->chatPage);
 
     qDebug() << "Successful change password";
 
@@ -592,12 +594,16 @@ void MainWindow::on_logout_clicked() {
 
 void MainWindow::on_changePassword_clicked() {
   qDebug() << "change password clicked";
+
   ui->stackedWidget->setCurrentWidget(ui->changePasswordPage);
 }
 
 void MainWindow::on_confirmChangePassword_clicked() {
 
   errorHandleChangePasswordClear();
+
+  ui->oldPassword->setStyleSheet("border: 1px solid gray");
+  ui->newPassword->setStyleSheet("border: 1px solid gray");
 
   QString oldPassword = ui->oldPassword->text();
   QString newPassword = ui->newPassword->text();
@@ -612,15 +618,17 @@ void MainWindow::on_confirmChangePassword_clicked() {
 
     errorHandleChangePassword();
 
-    // if new password is same as old we just set color like its changed
+    // if new password is same as old we wont send request for change
   } else if (oldPassword == newPassword) {
-    clearInputFieldsChangePasswordPage();
-    ui->oldPassword->setStyleSheet("border: 1px solid green");
-    ui->newPassword->setStyleSheet("border: 1px solid green");
+    //    clearInputFieldsChangePasswordPage();
+    errorHandleChangePassword();
+    ui->oldPassword->setStyleSheet("border: 1px solid yellow");
+    ui->newPassword->setStyleSheet("border: 1px solid yellow");
   } else {
+
     // needed so when repeatedly client changes password other colors dont stay
-    ui->oldPassword->setStyleSheet("border: 1px solid gray");
-    ui->newPassword->setStyleSheet("border: 1px solid gray");
+    //    ui->oldPassword->setStyleSheet("border: 1px solid gray");
+    //    ui->newPassword->setStyleSheet("border: 1px solid gray");
 
     QTextStream stream(mSocket);
 

@@ -1,10 +1,12 @@
-QT       += core gui
+QT       -= core gui
+QT -=gui
 QT +=network
 QT+=sql
 
+#greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
+CONFIG+=console
+#CONFIG += c++11 console
 CONFIG += c++11
 
 # You can make your code fail to compile if it uses deprecated APIs.

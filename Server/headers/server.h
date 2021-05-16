@@ -4,7 +4,6 @@
 #include <QObject>
 #include <QSqlDatabase>
 #include <QTcpServer>
-#include <QWidget>
 #include <QtSql>
 
 class Client;

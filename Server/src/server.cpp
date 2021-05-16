@@ -25,7 +25,7 @@ bool Server::startServer(quint16 port) {
 
   qDebug() << "start server";
   QFile databaseInfo("../Server/db.txt");
-  //  qDebug() << QFile::exists("../Server/db.txt");
+  qDebug() << QFile::exists("../Server/db.txt");
   if (databaseInfo.open(QFile::ReadOnly | QFile::Text)) {
     //    qDebug() << "open";
     QTextStream in(&databaseInfo);
@@ -462,12 +462,12 @@ void Server::serveClient(Client *client) {
         qDebug() << "Successful change password";
       }
 
-      // not really needed
-      query.finish();
-
       qDebug() << "query " << query.lastQuery();
       qDebug() << "error " << query.lastError();
       qDebug() << "num rows affected " << query.numRowsAffected();
+
+      // not really needed
+      query.finish();
 
     } else {
       streamFrom << changePasswordString << separator
