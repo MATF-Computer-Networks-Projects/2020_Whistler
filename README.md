@@ -115,9 +115,21 @@ git clone https://github.com/MATF-Computer-Networks-Projects/2020_Whistler.git
 
 ### Themes
 
+![Whistler](https://user-images.githubusercontent.com/47799410/118408611-a8468980-b686-11eb-83e7-a4ec15ddde0d.png)
+![Screenshot 2021-05-16 201101](https://user-images.githubusercontent.com/47799410/118408616-ac72a700-b686-11eb-932f-97aad6a7306d.png)
+![Screenshot 2021-05-16 201118](https://user-images.githubusercontent.com/47799410/118408626-b1375b00-b686-11eb-83ad-839f7cd340bc.png)
+![Screenshot 2021-05-16 201130](https://user-images.githubusercontent.com/47799410/118408631-b4cae200-b686-11eb-948b-206fbb91f51a.png)
+
+
 ### Chat
 
+![Screenshot 2021-05-16 201428](https://user-images.githubusercontent.com/47799410/118408636-ba282c80-b686-11eb-878d-76eef817b9a0.png)
+
+
 ### Error example
+
+![Animation1](https://user-images.githubusercontent.com/47799410/118408640-bf857700-b686-11eb-83ca-74b2e360bd48.gif)
+
 
 
 ## Documentation
