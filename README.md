@@ -43,7 +43,7 @@ Whistler is chat application.
 
 ## Programming languages and technologies
 
-This project is implemented using *C++* programming language and *Qt* framework. For database, *MySql* database is used (cloud solution).
+This project is implemented using *C++* programming language and *Qt* framework. For database, *MySql* database is used (cloud solution). For password hashing used library *Simplecrypt*.
 
 ## Usage instructions
 
